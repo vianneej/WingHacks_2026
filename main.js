@@ -110,6 +110,33 @@ const plants = Array.from({ length: 10 }, () => ({
   phase: rand(0, Math.PI * 2),
 }));
 
+const waterPatches = Array.from({ length: 55 }, () => ({
+  x: randI(0, 50) * 8,
+  y: randI(1, 22) * 8,
+  w: randI(2, 7) * 8,
+  h: randI(1, 4) * 8,
+  tone: randI(0, 5),
+  phase: rand(0, Math.PI * 2),
+}));
+
+const causticPatches = Array.from({ length: 26 }, () => ({
+  x: randI(0, 50) * 8,
+  y: randI(2, 24) * 8,
+  w: randI(2, 6) * 8,
+  h: randI(1, 2) * 8,
+  phase: rand(0, Math.PI * 2),
+  speed: rand(0.35, 0.85),
+}));
+
+const sandPatches = Array.from({ length: 36 }, () => ({
+  x: randI(0, 50) * 8,
+  y: randI(0, 6) * 8,
+  w: randI(2, 6) * 8,
+  h: randI(1, 3) * 8,
+  tone: randI(0, 4),
+  phase: rand(0, Math.PI * 2),
+}));
+
 function drawBackground() {
 
 
@@ -123,6 +150,7 @@ const colors = [
 ];
 
 const bandHeight = Math.ceil(renderCanvas.height / colors.length);
+const waterBottom = renderCanvas.height - 52;
 
 for (let i = 0; i < colors.length; i++) {
   ctx.fillStyle = colors[i];
@@ -133,6 +161,42 @@ for (let i = 0; i < colors.length; i++) {
     bandHeight
   );
 }
+
+// ── Pixel Water Patches ──────────────────
+for (const patch of waterPatches) {
+  if (patch.y + patch.h > waterBottom) continue;
+  const driftX = Math.floor(Math.sin(time * 0.006 + patch.phase) * 2) * 2;
+  const pulse = 0.11 + Math.sin(time * 0.01 + patch.phase) * 0.04;
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = colors[Math.min(colors.length - 1, patch.tone)];
+  ctx.fillRect(patch.x + driftX, patch.y, patch.w, patch.h);
+}
+ctx.globalAlpha = 1;
+
+// ── Water Currents (subtle ribbons) ──────
+ctx.globalAlpha = 0.1;
+for (let y = 18; y < waterBottom - 10; y += 16) {
+  const sway = Math.sin(time * 0.01 + y * 0.12) * 8;
+  const drift = (time * 0.45 + y * 0.8) % 24;
+  for (let x = -24; x < renderCanvas.width + 24; x += 24) {
+    const segW = 12 + Math.floor(Math.sin(time * 0.02 + x * 0.05 + y) * 2);
+    ctx.fillStyle = '#dff7ff';
+    ctx.fillRect(Math.floor(x + drift + sway), y, segW, 2);
+  }
+}
+ctx.globalAlpha = 1;
+
+// ── Caustic Glints ────────────────────────
+for (const patch of causticPatches) {
+  const flowX = (time * patch.speed + patch.phase * 20) % (renderCanvas.width + 56) - 28;
+  const wobbleY = Math.sin(time * 0.012 + patch.phase) * 3;
+  const py = patch.y + wobbleY;
+  if (py + patch.h > waterBottom || py < 8) continue;
+  ctx.globalAlpha = 0.08 + Math.sin(time * 0.02 + patch.phase) * 0.03;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(Math.floor(flowX), Math.floor(py), patch.w, patch.h);
+}
+ctx.globalAlpha = 1;
 
  // Surface shimmer lines
 // ── Pixel Water Sparkles ─────────────────
@@ -173,6 +237,18 @@ for (let x = 0; x < renderCanvas.width; x += 16) {
   ctx.fillStyle = '#f5c98c';
   ctx.fillRect(x, sandY + bump, 16, 8);
 }
+
+// ── Pixel Sand Patches ───────────────────
+const sandPatchColors = ['#f5c98c', '#efbe7f', '#e7b36f', '#f9d39d'];
+for (const patch of sandPatches) {
+  const driftX = Math.floor(Math.sin(time * 0.005 + patch.phase) * 1.5) * 2;
+  const bobY = Math.floor(Math.sin(time * 0.008 + patch.phase) * 1);
+  const pulse = 0.15 + Math.sin(time * 0.012 + patch.phase) * 0.05;
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = sandPatchColors[Math.min(sandPatchColors.length - 1, patch.tone)];
+  ctx.fillRect(patch.x + driftX, sandY + patch.y + bobY, patch.w, patch.h);
+}
+ctx.globalAlpha = 1;
 
   // Seaweed / plants (PNG with sway animation)
   const seaweedImg = images['seaweed'];
@@ -648,8 +724,12 @@ class Creature {
     this.tailColor = tailColor || color;
     this.vx = rand(-0.5, 0.5);
     this.vy = rand(-0.3, 0.3);
+    this.targetVx = this.vx;
+    this.targetVy = this.vy;
     this.dir = this.vx >= 0 ? 1 : -1;
     this.wiggle = rand(0, Math.PI * 2);
+    this.swimPhase = rand(0, Math.PI * 2);
+    this.swimSpeed = rand(0.8, 1.25);
     this.turnTimer = randI(120, 400);
     this.socialCooldown = 0;
     this.name = this.makeName();
@@ -661,33 +741,40 @@ class Creature {
   }
 
   update() {
-    this.wiggle += 0.08;
+    this.wiggle += 0.08 * this.swimSpeed;
     this.turnTimer--;
     if (this.socialCooldown > 0) this.socialCooldown--;
 
+    const isBottomDweller = this.type === 'lobster' || this.type === 'crab' || this.type === 'downCrab' || this.type === 'upCrab';
+
     if (this.turnTimer <= 0) {
-      this.vx = rand(-0.6, 0.6);
-      this.vy = rand(-0.3, 0.3);
+      this.targetVx = rand(-0.6, 0.6);
+      this.targetVy = rand(-0.3, 0.3);
       this.turnTimer = randI(120, 400);
     }
 
+    this.vx += (this.targetVx - this.vx) * (isBottomDweller ? 0.08 : 0.03);
+    this.vy += (this.targetVy - this.vy) * (isBottomDweller ? 0.06 : 0.03);
+
     // Bottom-dwelling types
-    if (this.type === 'lobster' || this.type === 'crab' || this.type === 'downCrab' || this.type === 'upCrab') {
+    if (isBottomDweller) {
       this.vy = 0;
       this.y = renderCanvas.height - 18;
       if (this.turnTimer <= 0) {
-        this.vx = (Math.random() < 0.5 ? -1 : 1) * rand(0.1, 0.4);
+        this.targetVx = (Math.random() < 0.5 ? -1 : 1) * rand(0.1, 0.4);
       }
     }
     if (this.type === 'seastar') {
       this.vy = 0;
       this.y = renderCanvas.height - 46;
       if (this.turnTimer <= 0) {
-        this.vx = (Math.random() < 0.5 ? -1 : 1) * rand(0.05, 0.15);
+        this.targetVx = (Math.random() < 0.5 ? -1 : 1) * rand(0.05, 0.15);
       }
     }
     if (this.type === 'jellyfish') {
       this.vy = Math.sin(time * 0.015 + this.wiggle) * 0.3;
+    } else if (!isBottomDweller && this.type !== 'seastar') {
+      this.vy += Math.sin(time * 0.03 + this.swimPhase) * 0.004 * this.swimSpeed;
     }
 
     this.x += this.vx;
@@ -697,13 +784,13 @@ class Creature {
     const margin = 30;
     const floorMargin = 8;
     if (this.type === 'downCrab' || this.type === 'upCrab' || this.type === 'crab' || this.type === 'lobster' || this.type === 'seastar') {
-      if (this.x < floorMargin)                        { this.x = floorMargin; this.vx *= -1; }
-      if (this.x > renderCanvas.width - floorMargin)   { this.x = renderCanvas.width - floorMargin; this.vx *= -1; }
+      if (this.x < floorMargin)                        { this.x = floorMargin; this.vx *= -1; this.targetVx = Math.abs(this.targetVx); }
+      if (this.x > renderCanvas.width - floorMargin)   { this.x = renderCanvas.width - floorMargin; this.vx *= -1; this.targetVx = -Math.abs(this.targetVx); }
     } else {
-      if (this.x < margin)                             { this.x = margin; this.vx *= -1; }
-      if (this.x > renderCanvas.width - margin)        { this.x = renderCanvas.width - margin; this.vx *= -1; }
-      if (this.y < margin)                             { this.y = margin; this.vy *= -1; }
-      if (this.y > renderCanvas.height - 60)           { this.y = renderCanvas.height - 60; this.vy *= -1; }
+      if (this.x < margin)                             { this.x = margin; this.vx *= -1; this.targetVx = Math.abs(this.targetVx); }
+      if (this.x > renderCanvas.width - margin)        { this.x = renderCanvas.width - margin; this.vx *= -1; this.targetVx = -Math.abs(this.targetVx); }
+      if (this.y < margin)                             { this.y = margin; this.vy *= -1; this.targetVy = Math.abs(this.targetVy); }
+      if (this.y > renderCanvas.height - 60)           { this.y = renderCanvas.height - 60; this.vy *= -1; this.targetVy = -Math.abs(this.targetVy); }
     }
 
     if (this.vx !== 0) this.dir = this.vx > 0 ? 1 : -1;
@@ -711,15 +798,24 @@ class Creature {
 
   draw() {
     const isCrabType = this.type === 'downCrab' || this.type === 'upCrab' || this.type === 'crab';
+    const isBottomDweller = isCrabType || this.type === 'lobster' || this.type === 'seastar';
     const animatedType = isCrabType && Math.floor(time / 20) % 2 === 0 ? 'downCrab' : 'upCrab';
     const img = isCrabType ? images[animatedType] : images[this.type];
     if (img && img.complete && img.naturalWidth > 0) {
       // Draw sprite image
       ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.scale(this.dir, 1);
+      const bobY = isBottomDweller ? 0 : Math.sin(this.wiggle * this.swimSpeed + this.swimPhase) * 1.4;
+      const swimTilt = isBottomDweller
+        ? 0
+        : Math.atan2(this.vy, Math.abs(this.vx) + 0.05) * 0.24 + Math.sin(this.wiggle * 0.55 + this.swimPhase) * 0.08;
+      const squirm = isBottomDweller ? 0 : Math.sin(this.wiggle * 1.7 + this.swimPhase) * 0.04;
+
+      ctx.translate(this.x, this.y + bobY);
+      ctx.rotate(swimTilt);
+      ctx.scale(this.dir * (1 + squirm), 1 - squirm * 0.6);
       const aspect = img.width / img.height;
-      const width = this.size;
+      const spriteScale = getSpriteScale(this.type);
+      const width = this.size * spriteScale;
       const height = width / aspect;
       ctx.drawImage(img, -width / 2, -height / 2, width, height);
       ctx.restore();
@@ -757,14 +853,6 @@ class Creature {
       }
     }
 
-    // Name tag
-    ctx.font = '600 6px Fredoka';
-    ctx.textAlign = 'center';
-    ctx.strokeStyle = 'rgba(0, 20, 40, 0.75)';
-    ctx.lineWidth = 1.4;
-    ctx.strokeText(this.name, this.x, this.y - this.size * 0.5 - 3);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fillText(this.name, this.x, this.y - this.size * 0.5 - 3);
   }
 
 
@@ -773,6 +861,41 @@ class Creature {
     return `${this.name}: "${pool[randI(0, pool.length)]}"`;
   }
 
+}
+
+function getSpriteScale(type) {
+  return type === 'dorry' ? 1.25 : type === 'seastar' ? 1.55 : type === 'Whaleshark' ? 1.2 : 1;
+}
+
+function drawReadableNametags() {
+  const scaleX = canvas.width / renderCanvas.width;
+  const scaleY = canvas.height / renderCanvas.height;
+
+  displayCtx.save();
+  displayCtx.textAlign = 'center';
+  displayCtx.font = '700 18px Fredoka';
+  displayCtx.lineWidth = 4;
+  displayCtx.strokeStyle = 'rgba(0, 20, 40, 0.85)';
+  displayCtx.fillStyle = 'rgba(255,255,255,0.98)';
+
+  creatures.forEach(c => {
+    const spriteScale = getSpriteScale(c.type);
+    const labelX = c.x * scaleX;
+    const labelY = (c.y - (c.size * spriteScale * 0.5) - 6) * scaleY;
+    displayCtx.strokeText(c.name, labelX, labelY);
+    displayCtx.fillText(c.name, labelX, labelY);
+  });
+
+  const playerLabelX = player.x * scaleX;
+  const playerLabelY = (player.y - player.size - 6) * scaleY;
+  displayCtx.font = '700 20px Fredoka';
+  displayCtx.lineWidth = 4.5;
+  displayCtx.strokeStyle = 'rgba(0, 20, 40, 0.9)';
+  displayCtx.fillStyle = '#f1c40f';
+  displayCtx.strokeText('⭐ You', playerLabelX, playerLabelY);
+  displayCtx.fillText('⭐ You', playerLabelX, playerLabelY);
+
+  displayCtx.restore();
 }
 // ── Player (user fish) ─────────────────────
 const player = {
@@ -841,6 +964,29 @@ function showChat(text, cx, cy) {
 // ── Player type selection ──────────────────
 let playerType = 'dorry';
 
+function getSpawnSize(type) {
+  switch (type) {
+    case 'dorry':
+    case 'clownfish':
+      return rand(22, 28);
+    case 'axilottle':
+      return rand(24, 32);
+    case 'seahorse':
+      return rand(20, 26);
+    case 'seastar':
+      return rand(16, 22);
+    case 'Whaleshark':
+    case 'seaturtle':
+      return rand(40, 50);
+    case 'downCrab':
+    case 'upCrab':
+    case 'crab':
+      return rand(20, 28);
+    default:
+      return rand(12, 20);
+  }
+}
+
 // ── Drag & Drop Creature Picker ────────────
 const availableCreatures = [
   { type: 'dorry', label: 'Dory', colors: ['#3498db'], sprite: 'dorry' },
@@ -863,6 +1009,11 @@ function initSidebar() {
     const spriteImg = images[creature.sprite] || images[creature.type];
     const spriteSrc = spriteImg ? spriteImg.src : '';
     picker.innerHTML = `<div class="creature-picker-icon"><img src="${spriteSrc}" alt="${creature.label}" draggable="false" /></div><div class="creature-picker-label">${creature.label}</div>`;
+    const pickerImg = picker.querySelector('.creature-picker-icon img');
+
+    if (creature.type === 'dorry' && pickerImg) {
+      pickerImg.classList.add('creature-picker-icon-dorry');
+    }
 
     if (creature.type === 'downCrab') {
       const crabIcon = picker.querySelector('.creature-picker-icon img');
@@ -929,7 +1080,7 @@ canvas.addEventListener('drop', (e) => {
   // Add creature based on type
   const creatureDef = availableCreatures.find(c => c.type === creatureType);
   if (creatureDef) {
-    const size = (creatureType === 'Whaleshark' || creatureType === 'seaturtle') ? rand(40, 50) : creatureType === 'downCrab' || creatureType === 'upCrab' ? rand(22, 28) : rand(12, 20);
+    const size = getSpawnSize(creatureType);
     const color = creatureDef.colors[randI(0, creatureDef.colors.length)];
     let y_pos = y;
     if (creatureType === 'downCrab' || creatureType === 'upCrab' || creatureType === 'crab') {
@@ -1015,32 +1166,32 @@ const creatures = [];
 
 // Fish (Dory - default)
 for (let i = 0; i < 6; i++) {
-  creatures.push(new Creature('dorry', rand(20, 300), rand(20, 130), rand(22, 28), '#3498db'));
+  creatures.push(new Creature('dorry', rand(20, 300), rand(20, 130), getSpawnSize('dorry'), '#3498db'));
 }
 
 // Axolotl swimmers
 for (let i = 0; i < 2; i++) {
-  creatures.push(new Creature('axilottle', rand(40, 280), rand(40, 120), rand(24, 32), '#c0392b'));
+  creatures.push(new Creature('axilottle', rand(40, 280), rand(40, 120), getSpawnSize('axilottle'), '#c0392b'));
 }
 
 // Clownfish
-creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), rand(22, 28), '#e74c3c'));
-creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), rand(22, 28), '#f39c12'));
+creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), getSpawnSize('clownfish'), '#e74c3c'));
+creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), getSpawnSize('clownfish'), '#f39c12'));
 
 // Whaleshark (biggest creature)
-creatures.push(new Creature('Whaleshark', rand(40, 240), rand(30, 90), rand(40, 50), '#5a8fa8'));
+creatures.push(new Creature('Whaleshark', rand(40, 240), rand(30, 90), getSpawnSize('Whaleshark'), '#5a8fa8'));
 
 // Crabs – on the seafloor
-creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, rand(22, 28), '#c0392b'));
-creatures.push(new Creature('upCrab', rand(30, 290), renderCanvas.height - 18, rand(22, 28), '#e67e22'));
-creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, rand(20, 24), '#d35400'));
+creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, getSpawnSize('downCrab'), '#c0392b'));
+creatures.push(new Creature('upCrab', rand(30, 290), renderCanvas.height - 18, getSpawnSize('upCrab'), '#e67e22'));
+creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, getSpawnSize('downCrab'), '#d35400'));
 
 // Seahorse
-creatures.push(new Creature('seahorse', rand(40, 280), rand(40, 120), rand(20, 26), '#f1c40f'));
+creatures.push(new Creature('seahorse', rand(40, 280), rand(40, 120), getSpawnSize('seahorse'), '#f1c40f'));
 
 // Sea stars – bottom
-creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, rand(16, 22), '#f39c12'));
-creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, rand(15, 20), '#e74c3c'));
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, getSpawnSize('seastar'), '#f39c12'));
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, getSpawnSize('seastar'), '#e74c3c'));
 
 // ── Socialise check ────────────────────────
 let socialCooldownGlobal = 0;
@@ -1323,13 +1474,6 @@ function gameLoop() {
   } else {
     drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
   }
-  ctx.font = '700 7px Fredoka';
-  ctx.textAlign = 'center';
-  ctx.strokeStyle = 'rgba(0, 20, 40, 0.85)';
-  ctx.lineWidth = 1.6;
-  ctx.strokeText('⭐ You', player.x, player.y - player.size - 4);
-  ctx.fillStyle = '#f1c40f';
-  ctx.fillText('⭐ You', player.x, player.y - player.size - 4);
 
   drawHearts();
 
@@ -1348,6 +1492,7 @@ displayCtx.drawImage(
   canvas.width,
   canvas.height
 );
+drawReadableNametags();
 
   requestAnimationFrame(gameLoop);
 }
