@@ -74,11 +74,138 @@ function drawBubbles() {
   });
 }
 
+// ── Coral reef structures (static, realistic) ──────
+function drawCoral() {
+  const floorY = renderCanvas.height - 46;
+
+  // --- Brain coral (round bumpy dome) ---
+  function drawBrainCoral(cx, cy, r, hue) {
+    // Base dome
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r * 0.7, 0, Math.PI, 0);
+    ctx.fillStyle = `hsl(${hue}, 50%, 55%)`;
+    ctx.fill();
+    ctx.strokeStyle = `hsl(${hue}, 40%, 40%)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    // Squiggly ridges
+    ctx.strokeStyle = `hsl(${hue}, 35%, 42%)`;
+    ctx.lineWidth = 0.6;
+    for (let i = -r * 0.6; i < r * 0.6; i += 3) {
+      ctx.beginPath();
+      ctx.moveTo(cx + i, cy - r * 0.15);
+      ctx.quadraticCurveTo(cx + i + 1.5, cy - r * 0.4, cx + i + 3, cy - r * 0.15);
+      ctx.stroke();
+    }
+  }
+
+  // --- Fan coral (flat branching fan) ---
+  function drawFanCoral(cx, cy, w, h, hue) {
+    // Stem
+    ctx.strokeStyle = `hsl(${hue}, 40%, 35%)`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - h * 0.3);
+    ctx.stroke();
+    // Fan shape
+    ctx.beginPath();
+    ctx.moveTo(cx - w * 0.5, cy - h * 0.25);
+    ctx.quadraticCurveTo(cx - w * 0.55, cy - h, cx, cy - h);
+    ctx.quadraticCurveTo(cx + w * 0.55, cy - h, cx + w * 0.5, cy - h * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = `hsl(${hue}, 60%, 50%)`;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = `hsl(${hue}, 50%, 40%)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    // Veins
+    ctx.strokeStyle = `hsl(${hue}, 45%, 42%)`;
+    ctx.lineWidth = 0.4;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - h * 0.3);
+      ctx.quadraticCurveTo(cx + i * w * 0.1, cy - h * 0.7, cx + i * w * 0.15, cy - h * 0.95);
+      ctx.stroke();
+    }
+  }
+
+  // --- Tube / finger coral ---
+  function drawTubeCoral(cx, cy, tubes, h, hue) {
+    for (let i = 0; i < tubes; i++) {
+      const tx = cx + (i - (tubes - 1) / 2) * 4;
+      const th = h * (0.6 + (i % 3) * 0.2);
+      ctx.fillStyle = `hsl(${hue + i * 5}, 55%, 52%)`;
+      ctx.beginPath();
+      ctx.moveTo(tx - 2, cy);
+      ctx.lineTo(tx - 1.8, cy - th);
+      ctx.arc(tx, cy - th, 2, Math.PI, 0);
+      ctx.lineTo(tx + 2, cy);
+      ctx.closePath();
+      ctx.fill();
+      // Rim
+      ctx.beginPath();
+      ctx.arc(tx, cy - th, 2, Math.PI, 0);
+      ctx.strokeStyle = `hsl(${hue + i * 5}, 50%, 60%)`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+  }
+
+  // --- Staghorn coral (branching Y shapes) ---
+  function drawStaghorn(cx, cy, size, hue) {
+    ctx.strokeStyle = `hsl(${hue}, 50%, 48%)`;
+    ctx.lineCap = 'round';
+    // Main trunk
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - size * 0.5);
+    ctx.stroke();
+    // Branches
+    const branches = [
+      [cx, cy - size * 0.5, cx - size * 0.3, cy - size * 0.9],
+      [cx, cy - size * 0.5, cx + size * 0.35, cy - size * 0.85],
+      [cx - size * 0.3, cy - size * 0.9, cx - size * 0.5, cy - size],
+      [cx - size * 0.3, cy - size * 0.9, cx - size * 0.15, cy - size * 1.05],
+      [cx + size * 0.35, cy - size * 0.85, cx + size * 0.25, cy - size * 1.05],
+      [cx + size * 0.35, cy - size * 0.85, cx + size * 0.5, cy - size * 0.95],
+    ];
+    ctx.lineWidth = 1.2;
+    branches.forEach(([x1, y1, x2, y2]) => {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    });
+    // Tips
+    ctx.fillStyle = `hsl(${hue}, 55%, 58%)`;
+    branches.slice(2).forEach(([,,tx, ty]) => {
+      ctx.beginPath();
+      ctx.arc(tx, ty, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // Place corals along the floor (all static, no movement)
+  drawBrainCoral(45, floorY, 12, 350);
+  drawBrainCoral(250, floorY, 9, 20);
+  drawFanCoral(100, floorY, 20, 28, 320);
+  drawFanCoral(280, floorY, 16, 22, 300);
+  drawTubeCoral(155, floorY, 5, 20, 30);
+  drawTubeCoral(210, floorY, 4, 16, 45);
+  drawStaghorn(75, floorY, 18, 10);
+  drawStaghorn(185, floorY, 14, 355);
+  drawStaghorn(300, floorY, 16, 340);
+}
+
 // ── Background – sand, water, plants ───────
 const plants = Array.from({ length: 12 }, () => ({
-  x: rand(30, 930),
-  h: rand(40, 120),
-  w: rand(6, 14),
+  x: rand(30, 310),
+  h: rand(15, 45),
+  w: rand(2, 5),
   hue: randI(100, 160),
   phase: rand(0, Math.PI * 2),
 }));
@@ -620,15 +747,15 @@ class Creature {
     }
 
     // Bottom-dwelling types
-    if (this.type === 'lobster' || this.type === 'crab') {
+    if (this.type === 'lobster' || this.type === 'crab' || this.type === 'downCrab' || this.type === 'upCrab') {
       this.vy = 0;
-      this.y = renderCanvas.height - 55;
-      this.vx = Math.sign(this.vx) * 0.3;
+      this.y = renderCanvas.height - 18;
+      this.vx = Math.sign(this.vx) * 0.15;
     }
     if (this.type === 'seastar') {
       this.vx *= 0.98;
       this.vy = 0;
-      this.y = renderCanvas.height - 52;
+      this.y = renderCanvas.height - 17;
     }
     if (this.type === 'jellyfish') {
       this.vy = Math.sin(time * 0.015 + this.wiggle) * 0.3;
@@ -648,38 +775,57 @@ class Creature {
   }
 
   draw() {
-    
-  const img = images[this.type];
-  if (!img) return;
+    const img = images[this.type];
+    if (img && img.complete && img.naturalWidth > 0) {
+      // Draw sprite image
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.scale(this.dir, 1);
+      const aspect = img.width / img.height;
+      const width = this.size;
+      const height = width / aspect;
+      ctx.drawImage(img, -width / 2, -height / 2, width, height);
+      ctx.restore();
+    } else {
+      // Fallback to canvas drawing
+      switch (this.type) {
+        case 'fish':
+          drawFish(this.x, this.y, this.size, this.color, this.tailColor, this.dir, this.wiggle);
+          break;
+        case 'lobster':
+          drawLobster(this.x, this.y, this.size, this.dir, this.wiggle);
+          break;
+        case 'octopus':
+          drawOctopus(this.x, this.y, this.size, this.color, this.wiggle);
+          break;
+        case 'jellyfish':
+          drawJellyfish(this.x, this.y, this.size, this.color, this.wiggle);
+          break;
+        case 'seastar':
+          drawSeaStar(this.x, this.y, this.size, this.color, this.wiggle);
+          break;
+        case 'seahorse':
+          drawSeahorse(this.x, this.y, this.size, this.color, this.dir, this.wiggle);
+          break;
+        case 'crab':
+          drawCrab(this.x, this.y, this.size, this.wiggle);
+          break;
+        default:
+          // Unknown types with no image: draw a simple circle
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+          break;
+      }
+    }
 
-  ctx.save();
-  ctx.translate(this.x, this.y);
-
-  // Flip image if moving left
-  ctx.scale(this.dir, 1);
-
-  // const width = this.size * 2;
-  // const height = this.size * 2;
-  const aspect = img.width / img.height;
-  let width = this.size * 2;
-  let height = width / aspect;
-
-  ctx.drawImage(
-    img,
-    -width / 2,
-    -height / 2,
-    width,
-    height
-  );
-
-  ctx.restore();
-
-  // Name tag
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(this.name, this.x, this.y - this.size - 8);
-}
+    // Name tag
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '4px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.name, this.x, this.y - this.size * 0.5 - 3);
+  }
 
 
   greet() {
@@ -690,9 +836,9 @@ class Creature {
 }
 // ── Player (user fish) ─────────────────────
 const player = {
-  x: 480,
-  y: 300,
-  size: 22,
+  x: 160,
+  y: 100,
+  size: 12,
   color: '#f1c40f',
   tailColor: '#e67e22',
   vx: 0,
@@ -715,8 +861,8 @@ function handleInput() {
   if (keys['arrowup']    || keys['w']) ay -= 1;
   if (keys['arrowdown']  || keys['s']) ay += 1;
 
-  player.vx += ax * 0.4;
-  player.vy += ay * 0.4;
+  player.vx += ax * 0.2;
+  player.vy += ay * 0.2;
 
   // Friction
   player.vx *= 0.9;
@@ -726,8 +872,8 @@ function handleInput() {
   player.y += player.vy;
 
   // Bounds
-  player.x = Math.max(25, Math.min(renderCanvas.width - 25, player.x));
-  player.y = Math.max(25, Math.min(renderCanvas.height - 55, player.y));
+  player.x = Math.max(10, Math.min(renderCanvas.width - 10, player.x));
+  player.y = Math.max(10, Math.min(renderCanvas.height - 20, player.y));
 
   if (Math.abs(player.vx) > 0.2) player.dir = player.vx > 0 ? 1 : -1;
   player.wiggle += 0.12;
@@ -761,34 +907,34 @@ const fishPalette = [
   ['#9b59b6','#8e44ad'], ['#1abc9c','#16a085'], ['#e91e63','#c2185b'],
   ['#ff9800','#f57c00'], ['#00bcd4','#0097a7'],
 ];
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < 6; i++) {
   const [c, tc] = fishPalette[i % fishPalette.length];
-  creatures.push(new Creature('fish', rand(60, 880), rand(60, 480), rand(14, 22), c, tc));
+  creatures.push(new Creature('fish', rand(20, 300), rand(20, 130), rand(10, 15), c, tc));
 }
 
-// Lobsters
+// Axolotl swimmers
 for (let i = 0; i < 2; i++) {
-  creatures.push(new Creature('axilottle', rand(100, 800), renderCanvas.height - 55, rand(30, 45), '#c0392b'));
+  creatures.push(new Creature('axilottle', rand(2, 280), rand(40, 120), rand(24, 32), '#c0392b'));
 }
 
-// Octopus
-creatures.push(new Creature('clownfish', rand(200, 700), rand(150, 350), rand(30, 45), '#8e44ad'));
-creatures.push(new Creature('clownfish', rand(200, 700), rand(150, 350), rand(30, 45), '#e74c3c'));
+// Clownfish
+creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), rand(22, 28), '#e74c3c'));
+creatures.push(new Creature('clownfish', rand(40, 280), rand(40, 120), rand(22, 28), '#f39c12'));
 
-// Jellyfish
-creatures.push(new Creature('downCrab', rand(100, 800), rand(50, 200), rand(50,60), 'rgba(173,127,255,0.8)'));
-creatures.push(new Creature('Whaleshark', rand(100, 800), rand(50, 200), rand(70, 80), 'rgba(100,200,255,0.8)'));
+// Whaleshark (biggest creature)
+creatures.push(new Creature('Whaleshark', rand(40, 240), rand(30, 90), rand(40, 50), '#5a8fa8'));
 
-// Sea stars
-creatures.push(new Creature('upCrab', rand(60, 900), renderCanvas.height - 52, rand(50, 60), '#f39c12'));
-creatures.push(new Creature('seastar', rand(60, 900), renderCanvas.height - 52, rand(12, 16), '#e74c3c'));
+// Crabs – on the seafloor
+creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, rand(22, 28), '#c0392b'));
+creatures.push(new Creature('upCrab', rand(30, 290), renderCanvas.height - 18, rand(22, 28), '#e67e22'));
+creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18, rand(20, 24), '#d35400'));
 
 // Seahorse
-creatures.push(new Creature('seahorse', rand(150, 750), rand(100, 400), rand(22, 30), '#f1c40f'));
+creatures.push(new Creature('seahorse', rand(40, 280), rand(40, 120), rand(20, 26), '#f1c40f'));
 
-// Crab
-creatures.push(new Creature('crab', rand(100, 800), renderCanvas.height - 55, rand(16, 22), '#e67e22'));
-creatures.push(new Creature('crab', rand(100, 800), renderCanvas.height - 55, rand(14, 18), '#d35400'));
+// Sea stars – bottom
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 17, rand(8, 12), '#f39c12'));
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 17, rand(7, 10), '#e74c3c'));
 
 // ── Socialise check ────────────────────────
 let socialCooldownGlobal = 0;
@@ -852,15 +998,16 @@ function gameLoop() {
 
   // Draw
   drawBackground();
+  drawCoral();
   drawBubbles();
   creatures.forEach(c => c.draw());
 
   // Draw player
   drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
   ctx.fillStyle = '#f1c40f';
-  ctx.font = 'bold 11px sans-serif';
+  ctx.font = 'bold 5px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('⭐ You', player.x, player.y - player.size - 10);
+  ctx.fillText('⭐ You', player.x, player.y - player.size - 4);
 
   drawHearts();
 
