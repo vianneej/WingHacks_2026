@@ -3,16 +3,42 @@
 // ============================================
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const displayCtx = canvas.getContext('2d');
 const chatBubble = document.getElementById('chatBubble');
 
-// ── Canvas sizing ──────────────────────────
-function resize() {
-  canvas.width  = Math.min(window.innerWidth - 40, 960);
-  canvas.height = Math.min(window.innerHeight - 120, 600);
+canvas.width = 960;
+canvas.height = 600;
+
+const renderCanvas = document.createElement('canvas');
+renderCanvas.width = 320;
+renderCanvas.height = 200;
+
+const ctx = renderCanvas.getContext('2d');
+
+ctx.imageSmoothingEnabled = false;
+displayCtx.imageSmoothingEnabled = false;
+
+//adding sea creature pngs
+const images = {};
+function loadImage(name, src) {
+  const img = new Image();
+  img.src = src;
+  images[name] = img;
 }
-resize();
-window.addEventListener('resize', resize);
+loadImage("axilottle", 'assets/axilottle.png');
+loadImage("clownfish", 'assets/clownfish.png');
+loadImage("seahorse", 'assets/seahorse.png');
+loadImage("downCrab", 'assets/crab(armsDown).png');
+loadImage("upCrab", 'assets/crab(armsUP).png');
+loadImage("Whaleshark", 'assets/whaleshark.png');
+
+// ── Canvas sizing ──────────────────────────
+// function resize() {
+//   canvas.width  = Math.min(window.innerWidth - 40, 960);
+//   canvas.height = Math.min(window.innerHeight - 120, 600);
+// }
+// resize();
+// window.addEventListener('resize', resize);
 
 // ── Utility helpers ────────────────────────
 const rand  = (a, b) => Math.random() * (b - a) + a;
@@ -59,54 +85,54 @@ const plants = Array.from({ length: 12 }, () => ({
 
 function drawBackground() {
   // Water gradient
-  const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  const grd = ctx.createLinearGradient(0, 0, 0, renderCanvas.height);
   grd.addColorStop(0, '#0b2e56');
   grd.addColorStop(0.6, '#0e4272');
   grd.addColorStop(1, '#1a5a3a');
   ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
 
   // Light rays
   ctx.save();
   for (let i = 0; i < 5; i++) {
     const rx = 120 + i * 180 + Math.sin(time * 0.008 + i) * 40;
-    const grdR = ctx.createLinearGradient(rx, 0, rx + 60, canvas.height);
+    const grdR = ctx.createLinearGradient(rx, 0, rx + 60, renderCanvas.height);
     grdR.addColorStop(0, 'rgba(180,230,255,0.07)');
     grdR.addColorStop(1, 'rgba(180,230,255,0)');
     ctx.fillStyle = grdR;
     ctx.beginPath();
     ctx.moveTo(rx - 20, 0);
-    ctx.lineTo(rx + 80, canvas.height);
-    ctx.lineTo(rx + 20, canvas.height);
+    ctx.lineTo(rx + 80, renderCanvas.height);
+    ctx.lineTo(rx + 20, renderCanvas.height);
     ctx.lineTo(rx - 60, 0);
     ctx.fill();
   }
   ctx.restore();
 
   // Sandy bottom
-  const sandY = canvas.height - 50;
-  const sandGrd = ctx.createLinearGradient(0, sandY, 0, canvas.height);
+  const sandY = renderCanvas.height - 50;
+  const sandGrd = ctx.createLinearGradient(0, sandY, 0, renderCanvas.height);
   sandGrd.addColorStop(0, '#c2a366');
   sandGrd.addColorStop(1, '#9e8050');
   ctx.fillStyle = sandGrd;
   ctx.beginPath();
   ctx.moveTo(0, sandY);
-  for (let x = 0; x <= canvas.width; x += 40) {
+  for (let x = 0; x <= renderCanvas.width; x += 40) {
     ctx.lineTo(x, sandY + Math.sin(x * 0.05 + time * 0.01) * 4);
   }
-  ctx.lineTo(canvas.width, canvas.height);
-  ctx.lineTo(0, canvas.height);
+  ctx.lineTo(renderCanvas.width, renderCanvas.height);
+  ctx.lineTo(0, renderCanvas.height);
   ctx.fill();
 
   // Seaweed / plants
   plants.forEach(p => {
-    if (p.x > canvas.width) return;
+    if (p.x > renderCanvas.width) return;
     ctx.save();
     ctx.strokeStyle = `hsl(${p.hue}, 60%, 35%)`;
     ctx.lineWidth = p.w;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    const base = canvas.height - 46;
+    const base = renderCanvas.height - 46;
     ctx.moveTo(p.x, base);
     const sway = Math.sin(time * 0.02 + p.phase) * 12;
     ctx.quadraticCurveTo(p.x + sway, base - p.h * 0.5, p.x + sway * 1.3, base - p.h);
@@ -124,8 +150,8 @@ function drawBackground() {
   });
 
   // Small decorative rocks
-  [[80, canvas.height - 44, 18], [300, canvas.height - 42, 12], [700, canvas.height - 43, 15], [880, canvas.height - 44, 10]].forEach(([rx, ry, rr]) => {
-    if (rx > canvas.width) return;
+  [[80, renderCanvas.height - 44, 18], [300, renderCanvas.height - 42, 12], [700, renderCanvas.height - 43, 15], [880, renderCanvas.height - 44, 10]].forEach(([rx, ry, rr]) => {
+    if (rx > renderCanvas.width) return;
     ctx.beginPath();
     ctx.ellipse(rx, ry, rr, rr * 0.6, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#7a7a6a';
@@ -133,7 +159,7 @@ function drawBackground() {
   });
 
   // Ambient bubbles
-  if (Math.random() < 0.03) spawnBubble(rand(20, canvas.width - 20), canvas.height - 50);
+  if (Math.random() < 0.03) spawnBubble(rand(20, renderCanvas.width - 20), renderCanvas.height - 50);
 }
 
 // ── Draw helper: generic fish shape ────────
@@ -596,13 +622,13 @@ class Creature {
     // Bottom-dwelling types
     if (this.type === 'lobster' || this.type === 'crab') {
       this.vy = 0;
-      this.y = canvas.height - 55;
+      this.y = renderCanvas.height - 55;
       this.vx = Math.sign(this.vx) * 0.3;
     }
     if (this.type === 'seastar') {
       this.vx *= 0.98;
       this.vy = 0;
-      this.y = canvas.height - 52;
+      this.y = renderCanvas.height - 52;
     }
     if (this.type === 'jellyfish') {
       this.vy = Math.sin(time * 0.015 + this.wiggle) * 0.3;
@@ -614,51 +640,54 @@ class Creature {
     // Bounds
     const margin = 30;
     if (this.x < margin)            { this.x = margin; this.vx *= -1; }
-    if (this.x > canvas.width - margin)  { this.x = canvas.width - margin; this.vx *= -1; }
+    if (this.x > renderCanvas.width - margin)  { this.x = renderCanvas.width - margin; this.vx *= -1; }
     if (this.y < margin)            { this.y = margin; this.vy *= -1; }
-    if (this.y > canvas.height - 60){ this.y = canvas.height - 60; this.vy *= -1; }
+    if (this.y > renderCanvas.height - 60){ this.y = renderCanvas.height - 60; this.vy *= -1; }
 
     if (this.vx !== 0) this.dir = this.vx > 0 ? 1 : -1;
   }
 
   draw() {
-    switch (this.type) {
-      case 'fish':
-        drawFish(this.x, this.y, this.size, this.color, this.tailColor, this.dir, this.wiggle);
-        break;
-      case 'lobster':
-        drawLobster(this.x, this.y, this.size, this.dir, this.wiggle);
-        break;
-      case 'octopus':
-        drawOctopus(this.x, this.y, this.size, this.color, this.wiggle);
-        break;
-      case 'jellyfish':
-        drawJellyfish(this.x, this.y, this.size, this.color, this.wiggle);
-        break;
-      case 'seastar':
-        drawSeaStar(this.x, this.y, this.size, this.color, this.wiggle);
-        break;
-      case 'seahorse':
-        drawSeahorse(this.x, this.y, this.size, this.color, this.dir, this.wiggle);
-        break;
-      case 'crab':
-        drawCrab(this.x, this.y, this.size, this.wiggle);
-        break;
-    }
+    
+  const img = images[this.type];
+  if (!img) return;
 
-    // Name tag
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(this.name, this.x, this.y - this.size - 8);
-  }
+  ctx.save();
+  ctx.translate(this.x, this.y);
+
+  // Flip image if moving left
+  ctx.scale(this.dir, 1);
+
+  // const width = this.size * 2;
+  // const height = this.size * 2;
+  const aspect = img.width / img.height;
+  let width = this.size * 2;
+  let height = width / aspect;
+
+  ctx.drawImage(
+    img,
+    -width / 2,
+    -height / 2,
+    width,
+    height
+  );
+
+  ctx.restore();
+
+  // Name tag
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(this.name, this.x, this.y - this.size - 8);
+}
+
 
   greet() {
     const pool = greetings[this.type] || greetings.fish;
     return `${this.name}: "${pool[randI(0, pool.length)]}"`;
   }
-}
 
+}
 // ── Player (user fish) ─────────────────────
 const player = {
   x: 480,
@@ -697,8 +726,8 @@ function handleInput() {
   player.y += player.vy;
 
   // Bounds
-  player.x = Math.max(25, Math.min(canvas.width - 25, player.x));
-  player.y = Math.max(25, Math.min(canvas.height - 55, player.y));
+  player.x = Math.max(25, Math.min(renderCanvas.width - 25, player.x));
+  player.y = Math.max(25, Math.min(renderCanvas.height - 55, player.y));
 
   if (Math.abs(player.vx) > 0.2) player.dir = player.vx > 0 ? 1 : -1;
   player.wiggle += 0.12;
@@ -739,27 +768,27 @@ for (let i = 0; i < 8; i++) {
 
 // Lobsters
 for (let i = 0; i < 2; i++) {
-  creatures.push(new Creature('lobster', rand(100, 800), canvas.height - 55, rand(16, 22), '#c0392b'));
+  creatures.push(new Creature('axilottle', rand(100, 800), renderCanvas.height - 55, rand(30, 45), '#c0392b'));
 }
 
 // Octopus
-creatures.push(new Creature('octopus', rand(200, 700), rand(150, 350), rand(26, 34), '#8e44ad'));
-creatures.push(new Creature('octopus', rand(200, 700), rand(150, 350), rand(22, 28), '#e74c3c'));
+creatures.push(new Creature('clownfish', rand(200, 700), rand(150, 350), rand(30, 45), '#8e44ad'));
+creatures.push(new Creature('clownfish', rand(200, 700), rand(150, 350), rand(30, 45), '#e74c3c'));
 
 // Jellyfish
-creatures.push(new Creature('jellyfish', rand(100, 800), rand(50, 200), rand(20, 28), 'rgba(173,127,255,0.8)'));
-creatures.push(new Creature('jellyfish', rand(100, 800), rand(50, 200), rand(18, 24), 'rgba(100,200,255,0.8)'));
+creatures.push(new Creature('downCrab', rand(100, 800), rand(50, 200), rand(50,60), 'rgba(173,127,255,0.8)'));
+creatures.push(new Creature('Whaleshark', rand(100, 800), rand(50, 200), rand(70, 80), 'rgba(100,200,255,0.8)'));
 
 // Sea stars
-creatures.push(new Creature('seastar', rand(60, 900), canvas.height - 52, rand(14, 20), '#f39c12'));
-creatures.push(new Creature('seastar', rand(60, 900), canvas.height - 52, rand(12, 16), '#e74c3c'));
+creatures.push(new Creature('upCrab', rand(60, 900), renderCanvas.height - 52, rand(50, 60), '#f39c12'));
+creatures.push(new Creature('seastar', rand(60, 900), renderCanvas.height - 52, rand(12, 16), '#e74c3c'));
 
 // Seahorse
 creatures.push(new Creature('seahorse', rand(150, 750), rand(100, 400), rand(22, 30), '#f1c40f'));
 
 // Crab
-creatures.push(new Creature('crab', rand(100, 800), canvas.height - 55, rand(16, 22), '#e67e22'));
-creatures.push(new Creature('crab', rand(100, 800), canvas.height - 55, rand(14, 18), '#d35400'));
+creatures.push(new Creature('crab', rand(100, 800), renderCanvas.height - 55, rand(16, 22), '#e67e22'));
+creatures.push(new Creature('crab', rand(100, 800), renderCanvas.height - 55, rand(14, 18), '#d35400'));
 
 // ── Socialise check ────────────────────────
 let socialCooldownGlobal = 0;
@@ -836,11 +865,20 @@ function gameLoop() {
   drawHearts();
 
   // Vignette
-  const vg = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.width * 0.3, canvas.width / 2, canvas.height / 2, canvas.width * 0.7);
+  const vg = ctx.createRadialGradient(renderCanvas.width / 2, renderCanvas.height / 2, renderCanvas.width * 0.3, renderCanvas.width / 2, renderCanvas.height / 2, renderCanvas.width * 0.7);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,10,30,0.35)');
   ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+
+  // Scale low-res canvas to screen
+displayCtx.clearRect(0, 0, canvas.width, canvas.height);
+displayCtx.drawImage(
+  renderCanvas,
+  0, 0,
+  canvas.width,
+  canvas.height
+);
 
   requestAnimationFrame(gameLoop);
 }
