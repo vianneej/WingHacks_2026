@@ -31,6 +31,7 @@ loadImage("seahorse", 'assets/seahorse.png');
 loadImage("downCrab", 'assets/crab(armsDown).png');
 loadImage("upCrab", 'assets/crab(armsUP).png');
 loadImage("Whaleshark", 'assets/whaleshark.png');
+loadImage("dorry", 'assets/dorry.png');
 
 // ── Canvas sizing ──────────────────────────
 // function resize() {
@@ -276,28 +277,31 @@ for (let x = 0; x < renderCanvas.width; x += 16) {
 
   // Seaweed / plants
   plants.forEach(p => {
-    if (p.x > renderCanvas.width) return;
-    ctx.save();
-    ctx.strokeStyle = `hsl(${p.hue}, 60%, 45%)`;
-    ctx.lineWidth = p.w;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    const base = renderCanvas.height - 46;
-    ctx.moveTo(p.x, base);
-    const sway = Math.sin(time * 0.02 + p.phase) * 12;
-    ctx.quadraticCurveTo(p.x + sway, base - p.h * 0.5, p.x + sway * 1.3, base - p.h);
-    ctx.stroke();
-    // leaf blobs
-    for (let j = 0.3; j < 1; j += 0.3) {
-      const ly = base - p.h * j;
-      const lx = p.x + sway * j + (j % 0.6 < 0.3 ? -1 : 1) * p.w;
-      ctx.beginPath();
-      ctx.ellipse(lx, ly, p.w * 0.8, p.w * 1.6, sway * 0.04, 0, Math.PI * 2);
-      ctx.fillStyle = `hsl(${p.hue}, 55%, 55%)`;
-      ctx.fill();
-    }
-    ctx.restore();
-  });
+  if (p.x > renderCanvas.width) return;
+
+  const baseY = renderCanvas.height - 46;
+  const sway = Math.floor(Math.sin(time * 0.02 + p.phase) * 3);
+
+  ctx.fillStyle = `hsl(${p.hue}, 50%, 50%)`;
+
+  // Main stalk (blocky)
+  for (let y = 0; y < p.h; y += 6) {
+    ctx.fillRect(
+      p.x + sway,
+      baseY - y,
+      6,
+      6
+    );
+  }
+
+  // Pixel leaves
+  ctx.fillStyle = `hsl(${p.hue}, 55%, 60%)`;
+
+  for (let y = 12; y < p.h; y += 18) {
+    ctx.fillRect(p.x + sway - 6, baseY - y, 6, 6);
+    ctx.fillRect(p.x + sway + 6, baseY - y - 4, 6, 6);
+  }
+});
 
   // Small decorative rocks
   [[80, renderCanvas.height - 44, 18], [300, renderCanvas.height - 42, 12], [700, renderCanvas.height - 43, 15], [880, renderCanvas.height - 44, 10]].forEach(([rx, ry, rr]) => {
@@ -933,7 +937,7 @@ const availableCreatures = [
   { type: 'seahorse', icon: '🐴', label: 'Seahorse', colors: ['#f1c40f'] },
   { type: 'seastar', icon: '⭐', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'] },
   { type: 'downCrab', icon: '🦀', label: 'Crab', colors: ['#c0392b', '#e67e22'] },
-  { type: 'Whaleshark', icon: '🐋', label: 'Whale Shark', colors: ['#5a8fa8'] },
+  { type: 'Whaleshark', icon: loadImage('whaleshark.png'), label: 'Whale Shark', colors: ['#5a8fa8'] },
 ];
 
 function initSidebar() {
