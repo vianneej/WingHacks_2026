@@ -32,6 +32,7 @@ loadImage("downCrab", 'assets/crab(armsDown).png');
 loadImage("upCrab", 'assets/crab(armsUP).png');
 loadImage("Whaleshark", 'assets/whaleshark.png');
 loadImage("dorry", 'assets/dorry.png');
+loadImage("seastar", 'assets/starfish.png');
 
 // ── Canvas sizing ──────────────────────────
 // function resize() {
@@ -781,12 +782,16 @@ class Creature {
     if (this.type === 'lobster' || this.type === 'crab' || this.type === 'downCrab' || this.type === 'upCrab') {
       this.vy = 0;
       this.y = renderCanvas.height - 18;
-      this.vx = Math.sign(this.vx) * 0.15;
+      if (this.turnTimer <= 0) {
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * rand(0.1, 0.4);
+      }
     }
     if (this.type === 'seastar') {
-      this.vx *= 0.98;
       this.vy = 0;
-      this.y = renderCanvas.height - 17;
+      this.y = renderCanvas.height - 46;
+      if (this.turnTimer <= 0) {
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * rand(0.05, 0.15);
+      }
     }
     if (this.type === 'jellyfish') {
       this.vy = Math.sin(time * 0.015 + this.wiggle) * 0.3;
@@ -797,10 +802,16 @@ class Creature {
 
     // Bounds
     const margin = 30;
-    if (this.x < margin)            { this.x = margin; this.vx *= -1; }
-    if (this.x > renderCanvas.width - margin)  { this.x = renderCanvas.width - margin; this.vx *= -1; }
-    if (this.y < margin)            { this.y = margin; this.vy *= -1; }
-    if (this.y > renderCanvas.height - 60){ this.y = renderCanvas.height - 60; this.vy *= -1; }
+    const floorMargin = 8;
+    if (this.type === 'downCrab' || this.type === 'upCrab' || this.type === 'crab' || this.type === 'lobster' || this.type === 'seastar') {
+      if (this.x < floorMargin)                        { this.x = floorMargin; this.vx *= -1; }
+      if (this.x > renderCanvas.width - floorMargin)   { this.x = renderCanvas.width - floorMargin; this.vx *= -1; }
+    } else {
+      if (this.x < margin)                             { this.x = margin; this.vx *= -1; }
+      if (this.x > renderCanvas.width - margin)        { this.x = renderCanvas.width - margin; this.vx *= -1; }
+      if (this.y < margin)                             { this.y = margin; this.vy *= -1; }
+      if (this.y > renderCanvas.height - 60)           { this.y = renderCanvas.height - 60; this.vy *= -1; }
+    }
 
     if (this.vx !== 0) this.dir = this.vx > 0 ? 1 : -1;
   }
@@ -994,7 +1005,7 @@ canvas.addEventListener('drop', (e) => {
     if (creatureType === 'downCrab' || creatureType === 'upCrab' || creatureType === 'crab') {
       y_pos = renderCanvas.height - 18;
     } else if (creatureType === 'seastar') {
-      y_pos = renderCanvas.height - 17;
+      y_pos = renderCanvas.height - 46;
     }
     creatures.push(new Creature(creatureType, x, y_pos, size, color));
   }
@@ -1098,8 +1109,8 @@ creatures.push(new Creature('downCrab', rand(30, 290), renderCanvas.height - 18,
 creatures.push(new Creature('seahorse', rand(40, 280), rand(40, 120), rand(20, 26), '#f1c40f'));
 
 // Sea stars – bottom
-creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 17, rand(8, 12), '#f39c12'));
-creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 17, rand(7, 10), '#e74c3c'));
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, rand(16, 22), '#f39c12'));
+creatures.push(new Creature('seastar', rand(20, 300), renderCanvas.height - 46, rand(15, 20), '#e74c3c'));
 
 // ── Socialise check ────────────────────────
 let socialCooldownGlobal = 0;
