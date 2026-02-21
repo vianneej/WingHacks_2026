@@ -931,13 +931,13 @@ function showChat(text, cx, cy) {
 
 // ── Drag & Drop Creature Picker ────────────
 const availableCreatures = [
-  { type: 'fish', icon: '🐟', label: 'Fish', colors: ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6'] },
+  { type: 'dorry', icon: '🐟', label: 'Dory', colors: ['#3498db'] },
   { type: 'clownfish', icon: '🐠', label: 'Clownfish', colors: ['#e74c3c'] },
   { type: 'axilottle', icon: '🦎', label: 'Axolotl', colors: ['#c0392b'] },
   { type: 'seahorse', icon: '🐴', label: 'Seahorse', colors: ['#f1c40f'] },
   { type: 'seastar', icon: '⭐', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'] },
   { type: 'downCrab', icon: '🦀', label: 'Crab', colors: ['#c0392b', '#e67e22'] },
-  { type: 'Whaleshark', icon: loadImage('whaleshark.png'), label: 'Whale Shark', colors: ['#5a8fa8'] },
+  { type: 'Whaleshark', icon: '🐋', label: 'Whale Shark', colors: ['#5a8fa8'] },
 ];
 
 function initSidebar() {
@@ -1072,15 +1072,9 @@ document.addEventListener('mouseup', (e) => {
 // ── Spawn creatures ────────────────────────
 const creatures = [];
 
-// Fish (various colours)
-const fishPalette = [
-  ['#3498db','#2980b9'], ['#e74c3c','#c0392b'], ['#2ecc71','#27ae60'],
-  ['#9b59b6','#8e44ad'], ['#1abc9c','#16a085'], ['#e91e63','#c2185b'],
-  ['#ff9800','#f57c00'], ['#00bcd4','#0097a7'],
-];
+// Fish (Dory - default)
 for (let i = 0; i < 6; i++) {
-  const [c, tc] = fishPalette[i % fishPalette.length];
-  creatures.push(new Creature('fish', rand(20, 300), rand(20, 130), rand(10, 15), c, tc));
+  creatures.push(new Creature('dorry', rand(20, 300), rand(20, 130), rand(22, 28), '#3498db'));
 }
 
 // Axolotl swimmers
