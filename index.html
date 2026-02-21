@@ -16,6 +16,20 @@
       overflow: hidden;
       font-family: 'Segoe UI', sans-serif;
     }
+    #container {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: center;
+      height: 100%;
+      padding-top: 40px;
+    }
+    #main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
     h1 {
       color: #7fdbff;
       margin-bottom: 8px;
@@ -27,6 +41,11 @@
       font-size: 0.85rem;
       margin-bottom: 6px;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     canvas {
       border: 3px solid #1a3a5c;
@@ -50,12 +69,96 @@
       z-index: 10;
     }
     #chatBubble.show { opacity: 1; }
+
+    #sidebar {
+      background: rgba(26, 58, 92, 0.8);
+      border: 2px solid #1a7a8a;
+      border-radius: 8px;
+      padding: 12px;
+      width: 100px;
+      height: auto;
+      max-height: none;
+      overflow-y: visible;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .creature-picker {
+      background: rgba(100, 200, 255, 0.2);
+      border: 2px solid #1a9fbb;
+      border-radius: 6px;
+      padding: 6px;
+      cursor: grab;
+      text-align: center;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .creature-picker:hover {
+      background: rgba(100, 200, 255, 0.4);
+      transform: scale(1.05);
+    }
+    .creature-picker:active {
+      cursor: grabbing;
+    }
+    .creature-picker-icon {
+      font-size: 32px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .creature-picker-label {
+      color: #7fdbff;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sidebarTitle {
+      color: #7fdbff;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #trashBin {
+      background: rgba(220, 53, 69, 0.7);
+      border: 2px dashed #dc3545;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      cursor: grab;
+      font-size: 32px;
+      transition: all 0.2s;
+      margin-top: auto;
+    }
+    #trashBin:hover {
+      background: rgba(220, 53, 69, 0.9);
+      box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+    }
+    #trashBin.drag-over {
+      background: rgba(220, 53, 69, 1);
+      border-color: #ff6b6b;
+      box-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
-  <h1>🐠 Aquarium Adventure 🐙</h1>
-  <div id="ui">Arrow keys / WASD to swim &bull; Swim near creatures to socialize!</div>
-  <canvas id="game"></canvas>
+  <div id="container">
+    <div id="sidebar">
+      <div id="sidebarTitle">Add Creatures</div>
+      <!-- Creature picker items will be inserted here -->
+      <div id="trashBin" title="Drag creatures here to delete">🗑️</div>
+    </div>
+    <div id="main">
+      <h1>🐠 Aquarium Adventure 🐙</h1>
+      <div id="ui">Arrow keys / WASD to swim &bull; Drag creatures from sidebar to add them! &bull; Drag creatures to trash to delete!</div>
+      <canvas id="game"></canvas>
+    </div>
+  </div>
   <div id="chatBubble"></div>
   <script src="main.js"></script>
 </body>

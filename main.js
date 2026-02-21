@@ -898,6 +898,146 @@ function showChat(text, cx, cy) {
   chatTimeout = setTimeout(() => chatBubble.classList.remove('show'), 3000);
 }
 
+// ── Drag & Drop Creature Picker ────────────
+const availableCreatures = [
+  { type: 'fish', icon: '🐟', label: 'Fish', colors: ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6'] },
+  { type: 'clownfish', icon: '🐠', label: 'Clownfish', colors: ['#e74c3c'] },
+  { type: 'axilottle', icon: '🦎', label: 'Axolotl', colors: ['#c0392b'] },
+  { type: 'seahorse', icon: '🐴', label: 'Seahorse', colors: ['#f1c40f'] },
+  { type: 'seastar', icon: '⭐', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'] },
+  { type: 'downCrab', icon: '🦀', label: 'Crab', colors: ['#c0392b', '#e67e22'] },
+  { type: 'Whaleshark', icon: '🐋', label: 'Whale Shark', colors: ['#5a8fa8'] },
+];
+
+function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  availableCreatures.forEach(creature => {
+    const picker = document.createElement('div');
+    picker.className = 'creature-picker';
+    picker.draggable = true;
+    picker.dataset.type = creature.type;
+    picker.innerHTML = `<div class="creature-picker-icon">${creature.icon}</div><div class="creature-picker-label">${creature.label}</div>`;
+    
+    picker.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('creatureType', creature.type);
+    });
+    
+    sidebar.appendChild(picker);
+  });
+}
+
+// Canvas drag-drop handlers
+canvas.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  canvas.style.filter = 'brightness(1.2)';
+});
+
+canvas.addEventListener('dragleave', () => {
+  canvas.style.filter = 'brightness(1)';
+});
+
+canvas.addEventListener('drop', (e) => {
+  e.preventDefault();
+  canvas.style.filter = 'brightness(1)';
+  
+  const creatureType = e.dataTransfer.getData('creatureType');
+  if (!creatureType) return;
+  
+  // Get drop position relative to canvas
+  const rect = canvas.getBoundingClientRect();
+  const dropX = (e.clientX - rect.left) / (rect.width / renderCanvas.width);
+  const dropY = (e.clientY - rect.top) / (rect.height / renderCanvas.height);
+  
+  // Clamp to valid range
+  const x = Math.max(20, Math.min(renderCanvas.width - 20, dropX));
+  const y = Math.max(20, Math.min(renderCanvas.height - 60, dropY));
+  
+  // Add creature based on type
+  const creatureDef = availableCreatures.find(c => c.type === creatureType);
+  if (creatureDef) {
+    const size = creatureType === 'Whaleshark' ? rand(40, 50) : creatureType === 'downCrab' || creatureType === 'upCrab' ? rand(22, 28) : rand(12, 20);
+    const color = creatureDef.colors[randI(0, creatureDef.colors.length)];
+    let y_pos = y;
+    if (creatureType === 'downCrab' || creatureType === 'upCrab' || creatureType === 'crab') {
+      y_pos = renderCanvas.height - 18;
+    } else if (creatureType === 'seastar') {
+      y_pos = renderCanvas.height - 17;
+    }
+    creatures.push(new Creature(creatureType, x, y_pos, size, color));
+  }
+});
+
+initSidebar();
+
+// ── Drag Creatures to Trash ────────────────
+let draggedCreature = null;
+let draggedCreatureIndex = -1;
+const trashBin = document.getElementById('trashBin');
+
+// Detect creature drag from canvas
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = (e.clientX - rect.left) / (rect.width / renderCanvas.width);
+  const clickY = (e.clientY - rect.top) / (rect.height / renderCanvas.height);
+  
+  // Check if click hits any creature
+  for (let i = creatures.length - 1; i >= 0; i--) {
+    const c = creatures[i];
+    const distance = Math.hypot(clickX - c.x, clickY - c.y);
+    if (distance < c.size + 8) {
+      draggedCreature = c;
+      draggedCreatureIndex = i;
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+      break;
+    }
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!draggedCreature) return;
+  
+  // Check if over trash bin
+  const trashRect = trashBin.getBoundingClientRect();
+  const isOverTrash = e.clientX >= trashRect.left && 
+                      e.clientX <= trashRect.right &&
+                      e.clientY >= trashRect.top && 
+                      e.clientY <= trashRect.bottom;
+  
+  if (isOverTrash) {
+    trashBin.classList.add('drag-over');
+  } else {
+    trashBin.classList.remove('drag-over');
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!draggedCreature) return;
+  
+  // Check if dropped on trash
+  const trashRect = trashBin.getBoundingClientRect();
+  const isOverTrash = e.clientX >= trashRect.left && 
+                      e.clientX <= trashRect.right &&
+                      e.clientY >= trashRect.top && 
+                      e.clientY <= trashRect.bottom;
+  
+  if (isOverTrash && draggedCreatureIndex !== -1) {
+    // Spawn deletion particles
+    for (let j = 0; j < 8; j++) {
+      spawnBubble(draggedCreature.x + rand(-8, 8), draggedCreature.y + rand(-8, 8));
+    }
+    creatures.splice(draggedCreatureIndex, 1);
+  }
+  
+  // Clean up
+  draggedCreature = null;
+  draggedCreatureIndex = -1;
+  canvas.style.cursor = 'default';
+  trashBin.classList.remove('drag-over');
+});
+
 // ── Spawn creatures ────────────────────────
 const creatures = [];
 
@@ -914,7 +1054,7 @@ for (let i = 0; i < 6; i++) {
 
 // Axolotl swimmers
 for (let i = 0; i < 2; i++) {
-  creatures.push(new Creature('axilottle', rand(2, 280), rand(40, 120), rand(24, 32), '#c0392b'));
+  creatures.push(new Creature('axilottle', rand(40, 280), rand(40, 120), rand(24, 32), '#c0392b'));
 }
 
 // Clownfish
