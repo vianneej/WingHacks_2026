@@ -6,12 +6,12 @@ const canvas = document.getElementById('game');
 const displayCtx = canvas.getContext('2d');
 const chatBubble = document.getElementById('chatBubble');
 
-canvas.width = 960;
-canvas.height = 600;
+canvas.width = 1200;
+canvas.height = 750;
 
 const renderCanvas = document.createElement('canvas');
-renderCanvas.width = 320;
-renderCanvas.height = 200;
+renderCanvas.width = 400;
+renderCanvas.height = 250;
 
 const ctx = renderCanvas.getContext('2d');
 
@@ -36,6 +36,7 @@ loadImage("seastar", 'assets/starfish.png');
 loadImage("seaweed", 'assets/seaweed.png');
 loadImage("bluecoral", 'assets/bluecoral.png');
 loadImage("redcoral", 'assets/redcoral.PNG');
+loadImage("seaturtle", 'assets/seaturtle.PNG');
 
 // ── Canvas sizing ──────────────────────────
 // function resize() {
@@ -82,11 +83,12 @@ function drawBubbles() {
 // ── Coral reef structures (PNG sprites) ──────
 const coralPlacements = [
   { img: 'bluecoral', x: 35,  w: 30, h: 28 },
-  { img: 'redcoral',  x: 90,  w: 28, h: 26 },
-  { img: 'bluecoral', x: 155, w: 26, h: 24 },
-  { img: 'redcoral',  x: 210, w: 30, h: 28 },
-  { img: 'bluecoral', x: 265, w: 24, h: 22 },
-  { img: 'redcoral',  x: 305, w: 26, h: 24 },
+  { img: 'redcoral',  x: 95,  w: 28, h: 26 },
+  { img: 'bluecoral', x: 160, w: 26, h: 24 },
+  { img: 'redcoral',  x: 220, w: 30, h: 28 },
+  { img: 'bluecoral', x: 280, w: 24, h: 22 },
+  { img: 'redcoral',  x: 340, w: 28, h: 26 },
+  { img: 'bluecoral', x: 385, w: 26, h: 24 },
 ];
 
 function drawCoral() {
@@ -100,8 +102,8 @@ function drawCoral() {
 }
 
 // ── Background – sand, water, plants ───────
-const plants = Array.from({ length: 8 }, () => ({
-  x: rand(30, 310),
+const plants = Array.from({ length: 10 }, () => ({
+  x: rand(30, 390),
   h: rand(35, 60),
   w: rand(2, 5),
   hue: randI(100, 160),
@@ -843,6 +845,7 @@ const availableCreatures = [
   { type: 'seastar', icon: '⭐', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'] },
   { type: 'downCrab', icon: '🦀', label: 'Crab', colors: ['#c0392b', '#e67e22'] },
   { type: 'Whaleshark', icon: '🐋', label: 'Whale Shark', colors: ['#5a8fa8'] },
+  { type: 'seaturtle', icon: '🐢', label: 'Sea Turtle', colors: ['#2ecc71', '#27ae60'] },
 ];
 
 function initSidebar() {
@@ -909,7 +912,7 @@ canvas.addEventListener('drop', (e) => {
   // Add creature based on type
   const creatureDef = availableCreatures.find(c => c.type === creatureType);
   if (creatureDef) {
-    const size = creatureType === 'Whaleshark' ? rand(40, 50) : creatureType === 'downCrab' || creatureType === 'upCrab' ? rand(22, 28) : rand(12, 20);
+    const size = (creatureType === 'Whaleshark' || creatureType === 'seaturtle') ? rand(40, 50) : creatureType === 'downCrab' || creatureType === 'upCrab' ? rand(22, 28) : rand(12, 20);
     const color = creatureDef.colors[randI(0, creatureDef.colors.length)];
     let y_pos = y;
     if (creatureType === 'downCrab' || creatureType === 'upCrab' || creatureType === 'crab') {

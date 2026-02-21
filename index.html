@@ -11,9 +11,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
+      justify-content: flex-start;
+      min-height: 100vh;
+      overflow: auto;
       font-family: 'Segoe UI', sans-serif;
     }
     #container {
@@ -21,8 +21,8 @@
       gap: 12px;
       align-items: flex-start;
       justify-content: center;
-      height: 100%;
       padding-top: 40px;
+      padding-bottom: 40px;
     }
     #main {
       display: flex;
@@ -32,6 +32,7 @@
     }
     h1 {
       color: #7fdbff;
+      margin-top: 30px;
       margin-bottom: 8px;
       font-size: 1.4rem;
       text-shadow: 0 0 10px rgba(127,219,255,.5);
@@ -268,6 +269,8 @@
   </style>
 </head>
 <body>
+  <h1>🐠 Aquarium Adventure 🐙</h1>
+  <div id="ui">Arrow keys / WASD to swim &bull; Click a creature to play as it! &bull; Drag to add &bull; Drag to trash to delete!</div>
   <div id="container">
     <div id="sidebar">
       <div id="sidebarTitle">Add Creatures</div>
@@ -275,8 +278,6 @@
       <div id="trashBin" title="Drag creatures here to delete">🗑️</div>
     </div>
     <div id="main">
-      <h1>🐠 Aquarium Adventure 🐙</h1>
-      <div id="ui">Arrow keys / WASD to swim &bull; Click a creature to play as it! &bull; Drag to add &bull; Drag to trash to delete!</div>
       <canvas id="game"></canvas>
     </div>
     <div id="timerPanel">
