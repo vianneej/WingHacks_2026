@@ -710,7 +710,9 @@ class Creature {
   }
 
   draw() {
-    const img = images[this.type];
+    const isCrabType = this.type === 'downCrab' || this.type === 'upCrab' || this.type === 'crab';
+    const animatedType = isCrabType && Math.floor(time / 20) % 2 === 0 ? 'downCrab' : 'upCrab';
+    const img = isCrabType ? images[animatedType] : images[this.type];
     if (img && img.complete && img.naturalWidth > 0) {
       // Draw sprite image
       ctx.save();
@@ -756,9 +758,12 @@ class Creature {
     }
 
     // Name tag
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '4px sans-serif';
+    ctx.font = '600 6px Fredoka';
     ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0, 20, 40, 0.75)';
+    ctx.lineWidth = 1.4;
+    ctx.strokeText(this.name, this.x, this.y - this.size * 0.5 - 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fillText(this.name, this.x, this.y - this.size * 0.5 - 3);
   }
 
@@ -838,14 +843,14 @@ let playerType = 'dorry';
 
 // ── Drag & Drop Creature Picker ────────────
 const availableCreatures = [
-  { type: 'dorry', icon: '🐟', label: 'Dory', colors: ['#3498db'] },
-  { type: 'clownfish', icon: '🐠', label: 'Clownfish', colors: ['#e74c3c'] },
-  { type: 'axilottle', icon: '🦎', label: 'Axolotl', colors: ['#c0392b'] },
-  { type: 'seahorse', icon: '🐴', label: 'Seahorse', colors: ['#f1c40f'] },
-  { type: 'seastar', icon: '⭐', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'] },
-  { type: 'downCrab', icon: '🦀', label: 'Crab', colors: ['#c0392b', '#e67e22'] },
-  { type: 'Whaleshark', icon: '🐋', label: 'Whale Shark', colors: ['#5a8fa8'] },
-  { type: 'seaturtle', icon: '🐢', label: 'Sea Turtle', colors: ['#2ecc71', '#27ae60'] },
+  { type: 'dorry', label: 'Dory', colors: ['#3498db'], sprite: 'dorry' },
+  { type: 'clownfish', label: 'Clownfish', colors: ['#e74c3c'], sprite: 'clownfish' },
+  { type: 'axilottle', label: 'Axolotl', colors: ['#c0392b'], sprite: 'axilottle' },
+  { type: 'seahorse', label: 'Seahorse', colors: ['#f1c40f'], sprite: 'seahorse' },
+  { type: 'seastar', label: 'Sea Star', colors: ['#f39c12', '#e74c3c'], sprite: 'seastar' },
+  { type: 'downCrab', label: 'Crab', colors: ['#c0392b', '#e67e22'], sprite: 'downCrab' },
+  { type: 'Whaleshark', label: 'Whale Shark', colors: ['#5a8fa8'], sprite: 'Whaleshark' },
+  { type: 'seaturtle', label: 'Sea Turtle', colors: ['#2ecc71', '#27ae60'], sprite: 'seaturtle' },
 ];
 
 function initSidebar() {
@@ -855,7 +860,19 @@ function initSidebar() {
     picker.className = 'creature-picker';
     picker.draggable = true;
     picker.dataset.type = creature.type;
-    picker.innerHTML = `<div class="creature-picker-icon">${creature.icon}</div><div class="creature-picker-label">${creature.label}</div>`;
+    const spriteImg = images[creature.sprite] || images[creature.type];
+    const spriteSrc = spriteImg ? spriteImg.src : '';
+    picker.innerHTML = `<div class="creature-picker-icon"><img src="${spriteSrc}" alt="${creature.label}" draggable="false" /></div><div class="creature-picker-label">${creature.label}</div>`;
+
+    if (creature.type === 'downCrab') {
+      const crabIcon = picker.querySelector('.creature-picker-icon img');
+      let crabUpFrame = false;
+      setInterval(() => {
+        const nextFrame = images[crabUpFrame ? 'downCrab' : 'upCrab'];
+        if (nextFrame && crabIcon) crabIcon.src = nextFrame.src;
+        crabUpFrame = !crabUpFrame;
+      }, 1000);
+    }
     
     // Mark the default player type as selected
     if (creature.type === playerType) {
@@ -1061,7 +1078,7 @@ function drawHearts() {
   hearts.forEach(h => {
     ctx.save();
     ctx.globalAlpha = h.alpha;
-    ctx.font = `${h.size}px sans-serif`;
+    ctx.font = `${h.size}px Fredoka`;
     ctx.fillText('💙', h.x, h.y);
     ctx.restore();
   });
@@ -1306,9 +1323,12 @@ function gameLoop() {
   } else {
     drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
   }
-  ctx.fillStyle = '#f1c40f';
-  ctx.font = 'bold 5px sans-serif';
+  ctx.font = '700 7px Fredoka';
   ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(0, 20, 40, 0.85)';
+  ctx.lineWidth = 1.6;
+  ctx.strokeText('⭐ You', player.x, player.y - player.size - 4);
+  ctx.fillStyle = '#f1c40f';
   ctx.fillText('⭐ You', player.x, player.y - player.size - 4);
 
   drawHearts();
