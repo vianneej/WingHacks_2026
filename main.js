@@ -211,51 +211,74 @@ const plants = Array.from({ length: 12 }, () => ({
 }));
 
 function drawBackground() {
-  // Water gradient
-  const grd = ctx.createLinearGradient(0, 0, 0, renderCanvas.height);
-  grd.addColorStop(0, '#0b2e56');
-  grd.addColorStop(0.6, '#0e4272');
-  grd.addColorStop(1, '#1a5a3a');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+
+
+  // ── Pixel Water Bands ─────────────────────
+const colors = [
+  '#bfe9ff',
+  '#9edcff',
+  '#7fd3ff',
+  '#63c5ff',
+  '#4ab3f4'
+];
+
+const bandHeight = Math.ceil(renderCanvas.height / colors.length);
+
+for (let i = 0; i < colors.length; i++) {
+  ctx.fillStyle = colors[i];
+  ctx.fillRect(
+    0,
+    i * bandHeight,
+    renderCanvas.width,
+    bandHeight
+  );
+}
+
+ // Surface shimmer lines
+// ── Pixel Water Sparkles ─────────────────
+ctx.globalAlpha = 0.2;
+
+for (let i = 0; i < 30; i++) {
+  const x = (i * 37 + time * 0.02) % renderCanvas.width;
+  const y = (i * 53 + time * 0.01) % renderCanvas.height;
+
+  ctx.fillStyle = 'white';
+  ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+}
+
+ctx.globalAlpha = 1;
 
   // Light rays
-  ctx.save();
-  for (let i = 0; i < 5; i++) {
-    const rx = 120 + i * 180 + Math.sin(time * 0.008 + i) * 40;
-    const grdR = ctx.createLinearGradient(rx, 0, rx + 60, renderCanvas.height);
-    grdR.addColorStop(0, 'rgba(180,230,255,0.07)');
-    grdR.addColorStop(1, 'rgba(180,230,255,0)');
-    ctx.fillStyle = grdR;
-    ctx.beginPath();
-    ctx.moveTo(rx - 20, 0);
-    ctx.lineTo(rx + 80, renderCanvas.height);
-    ctx.lineTo(rx + 20, renderCanvas.height);
-    ctx.lineTo(rx - 60, 0);
-    ctx.fill();
-  }
-  ctx.restore();
+  // ── Pixel Sun Beams ─────────────────────
+ctx.globalAlpha = 0.12;
+
+for (let i = 0; i < 4; i++) {
+  const x = 40 + i * 70 + Math.floor(Math.sin(time * 0.002 + i) * 10);
+  ctx.fillStyle = 'white';
+  ctx.fillRect(x, 0, 20, renderCanvas.height);
+}
+
+ctx.globalAlpha = 1;
 
   // Sandy bottom
-  const sandY = renderCanvas.height - 50;
-  const sandGrd = ctx.createLinearGradient(0, sandY, 0, renderCanvas.height);
-  sandGrd.addColorStop(0, '#c2a366');
-  sandGrd.addColorStop(1, '#9e8050');
-  ctx.fillStyle = sandGrd;
-  ctx.beginPath();
-  ctx.moveTo(0, sandY);
-  for (let x = 0; x <= renderCanvas.width; x += 40) {
-    ctx.lineTo(x, sandY + Math.sin(x * 0.05 + time * 0.01) * 4);
-  }
-  ctx.lineTo(renderCanvas.width, renderCanvas.height);
-  ctx.lineTo(0, renderCanvas.height);
-  ctx.fill();
+  // ── Pixel Sand ───────────────────────────
+const sandY = renderCanvas.height - 50;
+
+ctx.fillStyle = '#ffe6b8';
+ctx.fillRect(0, sandY, renderCanvas.width, 50);
+
+// Add block variation
+for (let x = 0; x < renderCanvas.width; x += 16) {
+  const bump = Math.floor(Math.sin(x * 0.1 + time * 0.02) * 3);
+  ctx.fillStyle = '#f5c98c';
+  ctx.fillRect(x, sandY + bump, 16, 8);
+}
 
   // Seaweed / plants
   plants.forEach(p => {
     if (p.x > renderCanvas.width) return;
     ctx.save();
-    ctx.strokeStyle = `hsl(${p.hue}, 60%, 35%)`;
+    ctx.strokeStyle = `hsl(${p.hue}, 60%, 45%)`;
     ctx.lineWidth = p.w;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -270,7 +293,7 @@ function drawBackground() {
       const lx = p.x + sway * j + (j % 0.6 < 0.3 ? -1 : 1) * p.w;
       ctx.beginPath();
       ctx.ellipse(lx, ly, p.w * 0.8, p.w * 1.6, sway * 0.04, 0, Math.PI * 2);
-      ctx.fillStyle = `hsl(${p.hue}, 55%, 40%)`;
+      ctx.fillStyle = `hsl(${p.hue}, 55%, 55%)`;
       ctx.fill();
     }
     ctx.restore();
@@ -287,6 +310,10 @@ function drawBackground() {
 
   // Ambient bubbles
   if (Math.random() < 0.03) spawnBubble(rand(20, renderCanvas.width - 20), renderCanvas.height - 50);
+
+  // Surface shimmer lines
+
+
 }
 
 // ── Draw helper: generic fish shape ────────
