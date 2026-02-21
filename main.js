@@ -1,0 +1,848 @@
+// ============================================
+//  Aquarium Adventure – main.js
+// ============================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const chatBubble = document.getElementById('chatBubble');
+
+// ── Canvas sizing ──────────────────────────
+function resize() {
+  canvas.width  = Math.min(window.innerWidth - 40, 960);
+  canvas.height = Math.min(window.innerHeight - 120, 600);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Utility helpers ────────────────────────
+const rand  = (a, b) => Math.random() * (b - a) + a;
+const randI = (a, b) => Math.floor(rand(a, b));
+const dist  = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ── Time tracking ──────────────────────────
+let time = 0;      // global animation timer
+
+// ── Bubble particles ───────────────────────
+const bubbles = [];
+function spawnBubble(x, y) {
+  bubbles.push({ x, y, r: rand(2, 5), speed: rand(0.3, 1), alpha: 1 });
+}
+function updateBubbles() {
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    b.y -= b.speed;
+    b.x += Math.sin(time * 0.05 + i) * 0.3;
+    b.alpha -= 0.005;
+    if (b.alpha <= 0 || b.y < -10) bubbles.splice(i, 1);
+  }
+}
+function drawBubbles() {
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,230,255,${b.alpha * 0.5})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(200,240,255,${b.alpha * 0.7})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+}
+
+// ── Background – sand, water, plants ───────
+const plants = Array.from({ length: 12 }, () => ({
+  x: rand(30, 930),
+  h: rand(40, 120),
+  w: rand(6, 14),
+  hue: randI(100, 160),
+  phase: rand(0, Math.PI * 2),
+}));
+
+function drawBackground() {
+  // Water gradient
+  const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grd.addColorStop(0, '#0b2e56');
+  grd.addColorStop(0.6, '#0e4272');
+  grd.addColorStop(1, '#1a5a3a');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Light rays
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const rx = 120 + i * 180 + Math.sin(time * 0.008 + i) * 40;
+    const grdR = ctx.createLinearGradient(rx, 0, rx + 60, canvas.height);
+    grdR.addColorStop(0, 'rgba(180,230,255,0.07)');
+    grdR.addColorStop(1, 'rgba(180,230,255,0)');
+    ctx.fillStyle = grdR;
+    ctx.beginPath();
+    ctx.moveTo(rx - 20, 0);
+    ctx.lineTo(rx + 80, canvas.height);
+    ctx.lineTo(rx + 20, canvas.height);
+    ctx.lineTo(rx - 60, 0);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Sandy bottom
+  const sandY = canvas.height - 50;
+  const sandGrd = ctx.createLinearGradient(0, sandY, 0, canvas.height);
+  sandGrd.addColorStop(0, '#c2a366');
+  sandGrd.addColorStop(1, '#9e8050');
+  ctx.fillStyle = sandGrd;
+  ctx.beginPath();
+  ctx.moveTo(0, sandY);
+  for (let x = 0; x <= canvas.width; x += 40) {
+    ctx.lineTo(x, sandY + Math.sin(x * 0.05 + time * 0.01) * 4);
+  }
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.lineTo(0, canvas.height);
+  ctx.fill();
+
+  // Seaweed / plants
+  plants.forEach(p => {
+    if (p.x > canvas.width) return;
+    ctx.save();
+    ctx.strokeStyle = `hsl(${p.hue}, 60%, 35%)`;
+    ctx.lineWidth = p.w;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const base = canvas.height - 46;
+    ctx.moveTo(p.x, base);
+    const sway = Math.sin(time * 0.02 + p.phase) * 12;
+    ctx.quadraticCurveTo(p.x + sway, base - p.h * 0.5, p.x + sway * 1.3, base - p.h);
+    ctx.stroke();
+    // leaf blobs
+    for (let j = 0.3; j < 1; j += 0.3) {
+      const ly = base - p.h * j;
+      const lx = p.x + sway * j + (j % 0.6 < 0.3 ? -1 : 1) * p.w;
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, p.w * 0.8, p.w * 1.6, sway * 0.04, 0, Math.PI * 2);
+      ctx.fillStyle = `hsl(${p.hue}, 55%, 40%)`;
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // Small decorative rocks
+  [[80, canvas.height - 44, 18], [300, canvas.height - 42, 12], [700, canvas.height - 43, 15], [880, canvas.height - 44, 10]].forEach(([rx, ry, rr]) => {
+    if (rx > canvas.width) return;
+    ctx.beginPath();
+    ctx.ellipse(rx, ry, rr, rr * 0.6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#7a7a6a';
+    ctx.fill();
+  });
+
+  // Ambient bubbles
+  if (Math.random() < 0.03) spawnBubble(rand(20, canvas.width - 20), canvas.height - 50);
+}
+
+// ── Draw helper: generic fish shape ────────
+function drawFish(x, y, size, color, tailColor, dir, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Tail
+  const tw = Math.sin(wiggle) * 4;
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.8, 0);
+  ctx.lineTo(-size * 1.5 + tw, -size * 0.5);
+  ctx.lineTo(-size * 1.5 + tw, size * 0.5);
+  ctx.closePath();
+  ctx.fillStyle = tailColor;
+  ctx.fill();
+
+  // Dorsal fin
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.2, -size * 0.5);
+  ctx.quadraticCurveTo(size * 0.1, -size * 1, size * 0.4, -size * 0.45);
+  ctx.fillStyle = tailColor;
+  ctx.fill();
+
+  // Eye
+  ctx.beginPath();
+  ctx.arc(size * 0.45, -size * 0.1, size * 0.18, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(size * 0.5, -size * 0.1, size * 0.09, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+
+  // Mouth
+  ctx.beginPath();
+  ctx.arc(size * 0.75, size * 0.1, size * 0.08, 0, Math.PI);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── Draw lobster ───────────────────────────
+function drawLobster(x, y, size, dir, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+
+  // Body segments
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 1.1, size * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.ellipse(size * 0.3, 0, size * 0.6, size * 0.38, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Tail fan
+  ctx.fillStyle = '#a93226';
+  ctx.beginPath();
+  ctx.moveTo(-size * 1.0, 0);
+  ctx.lineTo(-size * 1.6, -size * 0.4);
+  ctx.lineTo(-size * 1.3, 0);
+  ctx.lineTo(-size * 1.6, size * 0.4);
+  ctx.closePath();
+  ctx.fill();
+
+  // Claws
+  for (let s = -1; s <= 1; s += 2) {
+    const cw = Math.sin(wiggle + s) * 3;
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.ellipse(size * 1.3 + cw, s * size * 0.35, size * 0.35, size * 0.2, s * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    // Arm
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(size * 0.7, s * size * 0.15);
+    ctx.lineTo(size * 1.1 + cw, s * size * 0.35);
+    ctx.stroke();
+  }
+
+  // Eyes on stalks
+  for (let s = -1; s <= 1; s += 2) {
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(size * 0.6, s * size * 0.2);
+    ctx.lineTo(size * 0.8, s * size * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(size * 0.8, s * size * 0.4, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+  }
+
+  // Legs
+  ctx.strokeStyle = '#a93226';
+  ctx.lineWidth = 1.5;
+  for (let i = -2; i <= 1; i++) {
+    for (let s = -1; s <= 1; s += 2) {
+      ctx.beginPath();
+      ctx.moveTo(i * size * 0.3, s * size * 0.35);
+      ctx.lineTo(i * size * 0.3 - 4, s * size * 0.65);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ── Draw octopus ───────────────────────────
+function drawOctopus(x, y, size, color, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Tentacles
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI + Math.PI * 0.05;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size * 0.18;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const sx = Math.cos(angle) * size * 0.4;
+    const sy = size * 0.3;
+    ctx.moveTo(sx, sy);
+    const wave = Math.sin(wiggle + i * 0.8) * 8;
+    const ex = sx + Math.cos(angle) * size * 0.9 + wave;
+    const ey = sy + size * 0.8 + Math.sin(wiggle + i) * 5;
+    ctx.quadraticCurveTo(sx + wave * 0.5, sy + size * 0.5, ex, ey);
+    ctx.stroke();
+    // Suction cups
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    for (let t = 0.3; t < 0.9; t += 0.25) {
+      const px = sx + (ex - sx) * t + wave * t * 0.3;
+      const py = sy + (ey - sy) * t;
+      ctx.beginPath();
+      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Head
+  ctx.beginPath();
+  ctx.ellipse(0, -size * 0.1, size * 0.55, size * 0.65, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Spots
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath(); ctx.arc(-size * 0.15, -size * 0.3, size * 0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(size * 0.2, -size * 0.15, size * 0.08, 0, Math.PI * 2); ctx.fill();
+
+  // Eyes
+  for (let s = -1; s <= 1; s += 2) {
+    ctx.beginPath();
+    ctx.ellipse(s * size * 0.22, -size * 0.15, size * 0.15, size * 0.18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(s * size * 0.24, -size * 0.13, size * 0.08, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+  }
+
+  // Smile
+  ctx.beginPath();
+  ctx.arc(0, size * 0.05, size * 0.15, 0.1, Math.PI - 0.1);
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── Draw jellyfish ─────────────────────────
+function drawJellyfish(x, y, size, color, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Bell
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.6, size * 0.5, 0, Math.PI, 0);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.7;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Inner glow
+  ctx.beginPath();
+  ctx.ellipse(0, -size * 0.15, size * 0.3, size * 0.25, 0, Math.PI, 0);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fill();
+
+  // Tentacles
+  for (let i = -3; i <= 3; i++) {
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const sx = i * size * 0.14;
+    ctx.moveTo(sx, size * 0.05);
+    const wave = Math.sin(wiggle + i * 0.7) * 6;
+    ctx.quadraticCurveTo(sx + wave, size * 0.5, sx + wave * 1.5, size * 1.1 + Math.sin(wiggle + i) * 8);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// ── Draw sea star ──────────────────────────
+function drawSeaStar(x, y, size, color, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(wiggle * 0.3) * 0.05);
+
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const innerAngle = angle + Math.PI / 5;
+    const ox = Math.cos(angle) * size;
+    const oy = Math.sin(angle) * size;
+    const ix = Math.cos(innerAngle) * size * 0.4;
+    const iy = Math.sin(innerAngle) * size * 0.4;
+    if (i === 0) ctx.moveTo(ox, oy);
+    else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Dots
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle) * size * 0.45, Math.sin(angle) * size * 0.45, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ── Draw seahorse ──────────────────────────
+function drawSeahorse(x, y, size, color, dir, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+
+  // Body curve
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size * 0.4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.8);
+  ctx.quadraticCurveTo(size * 0.5, -size * 0.3, size * 0.2, size * 0.2);
+  ctx.quadraticCurveTo(-size * 0.1, size * 0.6, -size * 0.3, size * 0.9 + Math.sin(wiggle) * 3);
+  ctx.stroke();
+
+  // Head
+  ctx.beginPath();
+  ctx.ellipse(size * 0.1, -size * 0.85, size * 0.28, size * 0.25, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // Snout
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size * 0.15;
+  ctx.beginPath();
+  ctx.moveTo(size * 0.3, -size * 0.85);
+  ctx.lineTo(size * 0.6, -size * 0.9);
+  ctx.stroke();
+
+  // Eye
+  ctx.beginPath();
+  ctx.arc(size * 0.15, -size * 0.9, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(size * 0.17, -size * 0.9, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+
+  // Dorsal fin
+  ctx.fillStyle = `${color}88`;
+  ctx.beginPath();
+  ctx.ellipse(size * 0.35, -size * 0.2, size * 0.2, size * 0.3, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ── Draw crab ──────────────────────────────
+function drawCrab(x, y, size, wiggle) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.8, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#e67e22';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Claws
+  for (let s = -1; s <= 1; s += 2) {
+    const cw = Math.sin(wiggle + s) * 4;
+    ctx.strokeStyle = '#d35400';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(s * size * 0.7, -size * 0.1);
+    ctx.lineTo(s * (size * 1.1 + cw), -size * 0.3);
+    ctx.stroke();
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.ellipse(s * (size * 1.2 + cw), -size * 0.35, size * 0.25, size * 0.18, s * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Legs
+  ctx.strokeStyle = '#d35400';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) {
+    for (let s = -1; s <= 1; s += 2) {
+      const lx = s * (size * 0.3 + i * size * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(lx, size * 0.3);
+      ctx.lineTo(lx + s * 8, size * 0.6 + Math.sin(wiggle + i) * 2);
+      ctx.stroke();
+    }
+  }
+
+  // Eyes
+  for (let s = -1; s <= 1; s += 2) {
+    ctx.strokeStyle = '#d35400';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(s * size * 0.2, -size * 0.45);
+    ctx.lineTo(s * size * 0.25, -size * 0.65);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s * size * 0.25, -size * 0.65, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ── Socialisation dialogue ─────────────────
+const greetings = {
+  fish: [
+    "Blub blub! Nice to see you! 🐟",
+    "Race you to the coral!",
+    "Have you seen the new seaweed?",
+    "You look fin-tastic today!",
+    "Wanna play tag? 🏷️",
+    "The water's lovely today!",
+    "I found a shiny shell!",
+    "Let's swim together! 💙",
+  ],
+  lobster: [
+    "Snap snap! Welcome, friend! 🦞",
+    "Don't mind my claws, I'm friendly!",
+    "I'm guarding this spot. Just kidding!",
+    "Need a pinch of humor? 😂",
+    "These claws are for hugs only!",
+  ],
+  octopus: [
+    "Eight arms for eight hugs! 🐙",
+    "I just changed colour, notice?",
+    "Ink-redible to meet you!",
+    "Wanna see a magic trick?",
+    "I can open any jar!",
+  ],
+  jellyfish: [
+    "I'm just going with the flow~ 🌊",
+    "Don't worry, I won't sting!",
+    "Feeling luminous today! ✨",
+    "I've been drifting all day...",
+  ],
+  seastar: [
+    "Hey! Star-struck to see you! ⭐",
+    "I'm taking it slow today...",
+    "Five arms, five high-fives!",
+  ],
+  seahorse: [
+    "Galloping through the sea! 🌊",
+    "Hold my tail, let's explore!",
+    "I'm the knight of the ocean! 🏰",
+  ],
+  crab: [
+    "Feeling a bit crabby? Me too! 🦀",
+    "Sideways is the only way!",
+    "Check out my shell polish!",
+  ],
+};
+
+// ── Creature class ─────────────────────────
+class Creature {
+  constructor(type, x, y, size, color, tailColor) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.size = size;
+    this.color = color;
+    this.tailColor = tailColor || color;
+    this.vx = rand(-0.5, 0.5);
+    this.vy = rand(-0.3, 0.3);
+    this.dir = this.vx >= 0 ? 1 : -1;
+    this.wiggle = rand(0, Math.PI * 2);
+    this.turnTimer = randI(120, 400);
+    this.socialCooldown = 0;
+    this.name = this.makeName();
+  }
+
+  makeName() {
+    const names = ['Bubbles','Coral','Finn','Splash','Pepper','Sunny','Pearl','Ziggy','Nemo','Dory','Gill','Squid','Sandy','Neptune','Posie','Marlin','Wave','Shelly','Inky','Jet'];
+    return names[randI(0, names.length)];
+  }
+
+  update() {
+    this.wiggle += 0.08;
+    this.turnTimer--;
+    if (this.socialCooldown > 0) this.socialCooldown--;
+
+    if (this.turnTimer <= 0) {
+      this.vx = rand(-0.6, 0.6);
+      this.vy = rand(-0.3, 0.3);
+      this.turnTimer = randI(120, 400);
+    }
+
+    // Bottom-dwelling types
+    if (this.type === 'lobster' || this.type === 'crab') {
+      this.vy = 0;
+      this.y = canvas.height - 55;
+      this.vx = Math.sign(this.vx) * 0.3;
+    }
+    if (this.type === 'seastar') {
+      this.vx *= 0.98;
+      this.vy = 0;
+      this.y = canvas.height - 52;
+    }
+    if (this.type === 'jellyfish') {
+      this.vy = Math.sin(time * 0.015 + this.wiggle) * 0.3;
+    }
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Bounds
+    const margin = 30;
+    if (this.x < margin)            { this.x = margin; this.vx *= -1; }
+    if (this.x > canvas.width - margin)  { this.x = canvas.width - margin; this.vx *= -1; }
+    if (this.y < margin)            { this.y = margin; this.vy *= -1; }
+    if (this.y > canvas.height - 60){ this.y = canvas.height - 60; this.vy *= -1; }
+
+    if (this.vx !== 0) this.dir = this.vx > 0 ? 1 : -1;
+  }
+
+  draw() {
+    switch (this.type) {
+      case 'fish':
+        drawFish(this.x, this.y, this.size, this.color, this.tailColor, this.dir, this.wiggle);
+        break;
+      case 'lobster':
+        drawLobster(this.x, this.y, this.size, this.dir, this.wiggle);
+        break;
+      case 'octopus':
+        drawOctopus(this.x, this.y, this.size, this.color, this.wiggle);
+        break;
+      case 'jellyfish':
+        drawJellyfish(this.x, this.y, this.size, this.color, this.wiggle);
+        break;
+      case 'seastar':
+        drawSeaStar(this.x, this.y, this.size, this.color, this.wiggle);
+        break;
+      case 'seahorse':
+        drawSeahorse(this.x, this.y, this.size, this.color, this.dir, this.wiggle);
+        break;
+      case 'crab':
+        drawCrab(this.x, this.y, this.size, this.wiggle);
+        break;
+    }
+
+    // Name tag
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.name, this.x, this.y - this.size - 8);
+  }
+
+  greet() {
+    const pool = greetings[this.type] || greetings.fish;
+    return `${this.name}: "${pool[randI(0, pool.length)]}"`;
+  }
+}
+
+// ── Player (user fish) ─────────────────────
+const player = {
+  x: 480,
+  y: 300,
+  size: 22,
+  color: '#f1c40f',
+  tailColor: '#e67e22',
+  vx: 0,
+  vy: 0,
+  dir: 1,
+  wiggle: 0,
+  speed: 3,
+  name: 'You',
+};
+
+// ── Input handling ─────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
+
+function handleInput() {
+  let ax = 0, ay = 0;
+  if (keys['arrowleft']  || keys['a']) ax -= 1;
+  if (keys['arrowright'] || keys['d']) ax += 1;
+  if (keys['arrowup']    || keys['w']) ay -= 1;
+  if (keys['arrowdown']  || keys['s']) ay += 1;
+
+  player.vx += ax * 0.4;
+  player.vy += ay * 0.4;
+
+  // Friction
+  player.vx *= 0.9;
+  player.vy *= 0.9;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Bounds
+  player.x = Math.max(25, Math.min(canvas.width - 25, player.x));
+  player.y = Math.max(25, Math.min(canvas.height - 55, player.y));
+
+  if (Math.abs(player.vx) > 0.2) player.dir = player.vx > 0 ? 1 : -1;
+  player.wiggle += 0.12;
+
+  // Bubble trail
+  if (Math.random() < 0.15 && (Math.abs(player.vx) > 0.5 || Math.abs(player.vy) > 0.5)) {
+    spawnBubble(player.x - player.dir * player.size, player.y + rand(-5, 5));
+  }
+}
+
+// ── Chat bubble management ─────────────────
+let chatTimeout = null;
+function showChat(text, cx, cy) {
+  chatBubble.textContent = text;
+  chatBubble.classList.add('show');
+
+  const rect = canvas.getBoundingClientRect();
+  chatBubble.style.left = `${rect.left + cx - 100}px`;
+  chatBubble.style.top  = `${rect.top + cy - 50}px`;
+
+  clearTimeout(chatTimeout);
+  chatTimeout = setTimeout(() => chatBubble.classList.remove('show'), 3000);
+}
+
+// ── Spawn creatures ────────────────────────
+const creatures = [];
+
+// Fish (various colours)
+const fishPalette = [
+  ['#3498db','#2980b9'], ['#e74c3c','#c0392b'], ['#2ecc71','#27ae60'],
+  ['#9b59b6','#8e44ad'], ['#1abc9c','#16a085'], ['#e91e63','#c2185b'],
+  ['#ff9800','#f57c00'], ['#00bcd4','#0097a7'],
+];
+for (let i = 0; i < 8; i++) {
+  const [c, tc] = fishPalette[i % fishPalette.length];
+  creatures.push(new Creature('fish', rand(60, 880), rand(60, 480), rand(14, 22), c, tc));
+}
+
+// Lobsters
+for (let i = 0; i < 2; i++) {
+  creatures.push(new Creature('lobster', rand(100, 800), canvas.height - 55, rand(16, 22), '#c0392b'));
+}
+
+// Octopus
+creatures.push(new Creature('octopus', rand(200, 700), rand(150, 350), rand(26, 34), '#8e44ad'));
+creatures.push(new Creature('octopus', rand(200, 700), rand(150, 350), rand(22, 28), '#e74c3c'));
+
+// Jellyfish
+creatures.push(new Creature('jellyfish', rand(100, 800), rand(50, 200), rand(20, 28), 'rgba(173,127,255,0.8)'));
+creatures.push(new Creature('jellyfish', rand(100, 800), rand(50, 200), rand(18, 24), 'rgba(100,200,255,0.8)'));
+
+// Sea stars
+creatures.push(new Creature('seastar', rand(60, 900), canvas.height - 52, rand(14, 20), '#f39c12'));
+creatures.push(new Creature('seastar', rand(60, 900), canvas.height - 52, rand(12, 16), '#e74c3c'));
+
+// Seahorse
+creatures.push(new Creature('seahorse', rand(150, 750), rand(100, 400), rand(22, 30), '#f1c40f'));
+
+// Crab
+creatures.push(new Creature('crab', rand(100, 800), canvas.height - 55, rand(16, 22), '#e67e22'));
+creatures.push(new Creature('crab', rand(100, 800), canvas.height - 55, rand(14, 18), '#d35400'));
+
+// ── Socialise check ────────────────────────
+let socialCooldownGlobal = 0;
+
+function checkSocialise() {
+  if (socialCooldownGlobal > 0) { socialCooldownGlobal--; return; }
+  for (const c of creatures) {
+    if (c.socialCooldown > 0) continue;
+    const d = dist(player, c);
+    if (d < 55) {
+      showChat(c.greet(), c.x, c.y);
+      c.socialCooldown = 300; // ~5 sec at 60fps
+      socialCooldownGlobal = 90;
+      // spawn happy bubbles
+      for (let i = 0; i < 4; i++) spawnBubble(c.x + rand(-10, 10), c.y - 10);
+      break;
+    }
+  }
+}
+
+// ── Heart particle effect on socialise ─────
+const hearts = [];
+function spawnHeart(x, y) {
+  hearts.push({ x, y, vy: -1, alpha: 1, size: rand(8, 14) });
+}
+function updateHearts() {
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const h = hearts[i];
+    h.y += h.vy;
+    h.alpha -= 0.015;
+    if (h.alpha <= 0) hearts.splice(i, 1);
+  }
+}
+function drawHearts() {
+  hearts.forEach(h => {
+    ctx.save();
+    ctx.globalAlpha = h.alpha;
+    ctx.font = `${h.size}px sans-serif`;
+    ctx.fillText('💙', h.x, h.y);
+    ctx.restore();
+  });
+}
+
+// Override showChat to also spawn hearts
+const _showChat = showChat;
+showChat = function(text, cx, cy) {
+  _showChat(text, cx, cy);
+  for (let i = 0; i < 3; i++) spawnHeart(cx + rand(-15, 15), cy - 20);
+};
+
+// ── Main game loop ─────────────────────────
+function gameLoop() {
+  time++;
+  handleInput();
+
+  // Update
+  creatures.forEach(c => c.update());
+  updateBubbles();
+  updateHearts();
+  checkSocialise();
+
+  // Draw
+  drawBackground();
+  drawBubbles();
+  creatures.forEach(c => c.draw());
+
+  // Draw player
+  drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
+  ctx.fillStyle = '#f1c40f';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⭐ You', player.x, player.y - player.size - 10);
+
+  drawHearts();
+
+  // Vignette
+  const vg = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.width * 0.3, canvas.width / 2, canvas.height / 2, canvas.width * 0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,10,30,0.35)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();

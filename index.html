@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aquarium Adventure</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a1628;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    h1 {
+      color: #7fdbff;
+      margin-bottom: 8px;
+      font-size: 1.4rem;
+      text-shadow: 0 0 10px rgba(127,219,255,.5);
+    }
+    #ui {
+      color: #aee;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    canvas {
+      border: 3px solid #1a3a5c;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,100,200,.3);
+    }
+    #chatBubble {
+      position: fixed;
+      background: rgba(255,255,255,.92);
+      color: #234;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+      max-width: 220px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,.2);
+      z-index: 10;
+    }
+    #chatBubble.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>🐠 Aquarium Adventure 🐙</h1>
+  <div id="ui">Arrow keys / WASD to swim &bull; Swim near creatures to socialize!</div>
+  <canvas id="game"></canvas>
+  <div id="chatBubble"></div>
+  <script src="main.js"></script>
+</body>
+</html>
