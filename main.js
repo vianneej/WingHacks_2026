@@ -33,6 +33,9 @@ loadImage("upCrab", 'assets/crab(armsUP).png');
 loadImage("Whaleshark", 'assets/whaleshark.png');
 loadImage("dorry", 'assets/dorry.png');
 loadImage("seastar", 'assets/starfish.png');
+loadImage("seaweed", 'assets/seaweed.png');
+loadImage("bluecoral", 'assets/bluecoral.png');
+loadImage("redcoral", 'assets/redcoral.PNG');
 
 // ── Canvas sizing ──────────────────────────
 // function resize() {
@@ -76,137 +79,30 @@ function drawBubbles() {
   });
 }
 
-// ── Coral reef structures (static, realistic) ──────
+// ── Coral reef structures (PNG sprites) ──────
+const coralPlacements = [
+  { img: 'bluecoral', x: 35,  w: 30, h: 28 },
+  { img: 'redcoral',  x: 90,  w: 28, h: 26 },
+  { img: 'bluecoral', x: 155, w: 26, h: 24 },
+  { img: 'redcoral',  x: 210, w: 30, h: 28 },
+  { img: 'bluecoral', x: 265, w: 24, h: 22 },
+  { img: 'redcoral',  x: 305, w: 26, h: 24 },
+];
+
 function drawCoral() {
   const floorY = renderCanvas.height - 46;
-
-  // --- Brain coral (round bumpy dome) ---
-  function drawBrainCoral(cx, cy, r, hue) {
-    // Base dome
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, r, r * 0.7, 0, Math.PI, 0);
-    ctx.fillStyle = `hsl(${hue}, 50%, 55%)`;
-    ctx.fill();
-    ctx.strokeStyle = `hsl(${hue}, 40%, 40%)`;
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-    // Squiggly ridges
-    ctx.strokeStyle = `hsl(${hue}, 35%, 42%)`;
-    ctx.lineWidth = 0.6;
-    for (let i = -r * 0.6; i < r * 0.6; i += 3) {
-      ctx.beginPath();
-      ctx.moveTo(cx + i, cy - r * 0.15);
-      ctx.quadraticCurveTo(cx + i + 1.5, cy - r * 0.4, cx + i + 3, cy - r * 0.15);
-      ctx.stroke();
+  coralPlacements.forEach(c => {
+    const img = images[c.img];
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, c.x - c.w / 2, floorY - c.h, c.w, c.h);
     }
-  }
-
-  // --- Fan coral (flat branching fan) ---
-  function drawFanCoral(cx, cy, w, h, hue) {
-    // Stem
-    ctx.strokeStyle = `hsl(${hue}, 40%, 35%)`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx, cy - h * 0.3);
-    ctx.stroke();
-    // Fan shape
-    ctx.beginPath();
-    ctx.moveTo(cx - w * 0.5, cy - h * 0.25);
-    ctx.quadraticCurveTo(cx - w * 0.55, cy - h, cx, cy - h);
-    ctx.quadraticCurveTo(cx + w * 0.55, cy - h, cx + w * 0.5, cy - h * 0.25);
-    ctx.closePath();
-    ctx.fillStyle = `hsl(${hue}, 60%, 50%)`;
-    ctx.globalAlpha = 0.85;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = `hsl(${hue}, 50%, 40%)`;
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-    // Veins
-    ctx.strokeStyle = `hsl(${hue}, 45%, 42%)`;
-    ctx.lineWidth = 0.4;
-    for (let i = -2; i <= 2; i++) {
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - h * 0.3);
-      ctx.quadraticCurveTo(cx + i * w * 0.1, cy - h * 0.7, cx + i * w * 0.15, cy - h * 0.95);
-      ctx.stroke();
-    }
-  }
-
-  // --- Tube / finger coral ---
-  function drawTubeCoral(cx, cy, tubes, h, hue) {
-    for (let i = 0; i < tubes; i++) {
-      const tx = cx + (i - (tubes - 1) / 2) * 4;
-      const th = h * (0.6 + (i % 3) * 0.2);
-      ctx.fillStyle = `hsl(${hue + i * 5}, 55%, 52%)`;
-      ctx.beginPath();
-      ctx.moveTo(tx - 2, cy);
-      ctx.lineTo(tx - 1.8, cy - th);
-      ctx.arc(tx, cy - th, 2, Math.PI, 0);
-      ctx.lineTo(tx + 2, cy);
-      ctx.closePath();
-      ctx.fill();
-      // Rim
-      ctx.beginPath();
-      ctx.arc(tx, cy - th, 2, Math.PI, 0);
-      ctx.strokeStyle = `hsl(${hue + i * 5}, 50%, 60%)`;
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-    }
-  }
-
-  // --- Staghorn coral (branching Y shapes) ---
-  function drawStaghorn(cx, cy, size, hue) {
-    ctx.strokeStyle = `hsl(${hue}, 50%, 48%)`;
-    ctx.lineCap = 'round';
-    // Main trunk
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx, cy - size * 0.5);
-    ctx.stroke();
-    // Branches
-    const branches = [
-      [cx, cy - size * 0.5, cx - size * 0.3, cy - size * 0.9],
-      [cx, cy - size * 0.5, cx + size * 0.35, cy - size * 0.85],
-      [cx - size * 0.3, cy - size * 0.9, cx - size * 0.5, cy - size],
-      [cx - size * 0.3, cy - size * 0.9, cx - size * 0.15, cy - size * 1.05],
-      [cx + size * 0.35, cy - size * 0.85, cx + size * 0.25, cy - size * 1.05],
-      [cx + size * 0.35, cy - size * 0.85, cx + size * 0.5, cy - size * 0.95],
-    ];
-    ctx.lineWidth = 1.2;
-    branches.forEach(([x1, y1, x2, y2]) => {
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    });
-    // Tips
-    ctx.fillStyle = `hsl(${hue}, 55%, 58%)`;
-    branches.slice(2).forEach(([,,tx, ty]) => {
-      ctx.beginPath();
-      ctx.arc(tx, ty, 1.2, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
-  // Place corals along the floor (all static, no movement)
-  drawBrainCoral(45, floorY, 12, 350);
-  drawBrainCoral(250, floorY, 9, 20);
-  drawFanCoral(100, floorY, 20, 28, 320);
-  drawFanCoral(280, floorY, 16, 22, 300);
-  drawTubeCoral(155, floorY, 5, 20, 30);
-  drawTubeCoral(210, floorY, 4, 16, 45);
-  drawStaghorn(75, floorY, 18, 10);
-  drawStaghorn(185, floorY, 14, 355);
-  drawStaghorn(300, floorY, 16, 340);
+  });
 }
 
 // ── Background – sand, water, plants ───────
-const plants = Array.from({ length: 12 }, () => ({
+const plants = Array.from({ length: 8 }, () => ({
   x: rand(30, 310),
-  h: rand(15, 45),
+  h: rand(35, 60),
   w: rand(2, 5),
   hue: randI(100, 160),
   phase: rand(0, Math.PI * 2),
@@ -276,41 +172,36 @@ for (let x = 0; x < renderCanvas.width; x += 16) {
   ctx.fillRect(x, sandY + bump, 16, 8);
 }
 
-  // Seaweed / plants
+  // Seaweed / plants (PNG with sway animation)
+  const seaweedImg = images['seaweed'];
   plants.forEach(p => {
-  if (p.x > renderCanvas.width) return;
+    if (p.x > renderCanvas.width) return;
 
-  const baseY = renderCanvas.height - 46;
-  const sway = Math.floor(Math.sin(time * 0.02 + p.phase) * 3);
+    const baseY = renderCanvas.height - 30;
+    const swayAngle = Math.sin(time * 0.025 + p.phase) * 0.08;
 
-  ctx.fillStyle = `hsl(${p.hue}, 50%, 50%)`;
-
-  // Main stalk (blocky)
-  for (let y = 0; y < p.h; y += 6) {
-    ctx.fillRect(
-      p.x + sway,
-      baseY - y,
-      6,
-      6
-    );
-  }
-
-  // Pixel leaves
-  ctx.fillStyle = `hsl(${p.hue}, 55%, 60%)`;
-
-  for (let y = 12; y < p.h; y += 18) {
-    ctx.fillRect(p.x + sway - 6, baseY - y, 6, 6);
-    ctx.fillRect(p.x + sway + 6, baseY - y - 4, 6, 6);
-  }
-});
-
-  // Small decorative rocks
-  [[80, renderCanvas.height - 44, 18], [300, renderCanvas.height - 42, 12], [700, renderCanvas.height - 43, 15], [880, renderCanvas.height - 44, 10]].forEach(([rx, ry, rr]) => {
-    if (rx > renderCanvas.width) return;
-    ctx.beginPath();
-    ctx.ellipse(rx, ry, rr, rr * 0.6, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#7a7a6a';
-    ctx.fill();
+    if (seaweedImg && seaweedImg.complete && seaweedImg.naturalWidth > 0) {
+      const drawW = p.h * 0.8;
+      const drawH = p.h;
+      ctx.save();
+      // Pivot at the bottom-center of the seaweed (rooted in sand)
+      ctx.translate(p.x, baseY);
+      ctx.rotate(swayAngle);
+      ctx.drawImage(seaweedImg, -drawW / 2, -drawH, drawW, drawH);
+      ctx.restore();
+    } else {
+      // Fallback: simple blocky seaweed
+      const sway = Math.floor(Math.sin(time * 0.02 + p.phase) * 3);
+      ctx.fillStyle = `hsl(${p.hue}, 50%, 50%)`;
+      for (let y = 0; y < p.h; y += 6) {
+        ctx.fillRect(p.x + sway, baseY - y, 6, 6);
+      }
+      ctx.fillStyle = `hsl(${p.hue}, 55%, 60%)`;
+      for (let y = 12; y < p.h; y += 18) {
+        ctx.fillRect(p.x + sway - 6, baseY - y, 6, 6);
+        ctx.fillRect(p.x + sway + 6, baseY - y - 4, 6, 6);
+      }
+    }
   });
 
   // Ambient bubbles
@@ -880,7 +771,7 @@ class Creature {
 const player = {
   x: 160,
   y: 100,
-  size: 12,
+  size: 30,
   color: '#f1c40f',
   tailColor: '#e67e22',
   vx: 0,
@@ -940,6 +831,9 @@ function showChat(text, cx, cy) {
   chatTimeout = setTimeout(() => chatBubble.classList.remove('show'), 3000);
 }
 
+// ── Player type selection ──────────────────
+let playerType = 'dorry';
+
 // ── Drag & Drop Creature Picker ────────────
 const availableCreatures = [
   { type: 'dorry', icon: '🐟', label: 'Dory', colors: ['#3498db'] },
@@ -960,7 +854,23 @@ function initSidebar() {
     picker.dataset.type = creature.type;
     picker.innerHTML = `<div class="creature-picker-icon">${creature.icon}</div><div class="creature-picker-label">${creature.label}</div>`;
     
+    // Mark the default player type as selected
+    if (creature.type === playerType) {
+      picker.classList.add('selected-player');
+    }
+
+    // Click to select as player fish
+    picker.addEventListener('click', (e) => {
+      // Don't select if this was a drag
+      if (picker._wasDragged) { picker._wasDragged = false; return; }
+      playerType = creature.type;
+      // Update visual selection
+      sidebar.querySelectorAll('.creature-picker').forEach(p => p.classList.remove('selected-player'));
+      picker.classList.add('selected-player');
+    });
+
     picker.addEventListener('dragstart', (e) => {
+      picker._wasDragged = true;
       e.dataTransfer.effectAllowed = 'copy';
       e.dataTransfer.setData('creatureType', creature.type);
     });
@@ -1380,7 +1290,19 @@ function gameLoop() {
   creatures.forEach(c => c.draw());
 
   // Draw player
-  drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
+  const playerImg = images[playerType];
+  if (playerImg && playerImg.complete && playerImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.scale(player.dir, 1);
+    const aspect = playerImg.width / playerImg.height;
+    const w = player.size;
+    const h = w / aspect;
+    ctx.drawImage(playerImg, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  } else {
+    drawFish(player.x, player.y, player.size, player.color, player.tailColor, player.dir, player.wiggle);
+  }
   ctx.fillStyle = '#f1c40f';
   ctx.font = 'bold 5px sans-serif';
   ctx.textAlign = 'center';

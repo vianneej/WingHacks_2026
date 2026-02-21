@@ -101,6 +101,19 @@
     .creature-picker:active {
       cursor: grabbing;
     }
+    .creature-picker.selected-player {
+      background: rgba(241, 196, 15, 0.35);
+      border-color: #f1c40f;
+      box-shadow: 0 0 8px rgba(241,196,15,0.5);
+    }
+    .creature-picker.selected-player::after {
+      content: '⭐ YOU';
+      display: block;
+      font-size: 8px;
+      color: #f1c40f;
+      font-weight: bold;
+      margin-top: 2px;
+    }
     .creature-picker-icon {
       font-size: 32px;
       line-height: 1;
@@ -263,7 +276,7 @@
     </div>
     <div id="main">
       <h1>🐠 Aquarium Adventure 🐙</h1>
-      <div id="ui">Arrow keys / WASD to swim &bull; Drag creatures from sidebar to add them! &bull; Drag creatures to trash to delete!</div>
+      <div id="ui">Arrow keys / WASD to swim &bull; Click a creature to play as it! &bull; Drag to add &bull; Drag to trash to delete!</div>
       <canvas id="game"></canvas>
     </div>
     <div id="timerPanel">
