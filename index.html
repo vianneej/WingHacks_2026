@@ -144,6 +144,114 @@
       box-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
       transform: scale(1.05);
     }
+
+    /* ── Study Timer Panel ─────────────── */
+    #timerPanel {
+      background: rgba(26, 58, 92, 0.85);
+      border: 2px solid #1a7a8a;
+      border-radius: 12px;
+      padding: 16px 14px;
+      width: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #timerTitle {
+      color: #7fdbff;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      text-align: center;
+    }
+    #timerDisplay {
+      color: #fff;
+      font-size: 36px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 12px rgba(127,219,255,0.6);
+      letter-spacing: 2px;
+    }
+    #timerInputs {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    #timerInputs input {
+      width: 42px;
+      padding: 4px;
+      border: 1px solid #1a9fbb;
+      border-radius: 6px;
+      background: rgba(0,20,40,0.7);
+      color: #7fdbff;
+      font-size: 14px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+    }
+    #timerInputs input:focus {
+      outline: none;
+      border-color: #7fdbff;
+      box-shadow: 0 0 6px rgba(127,219,255,0.4);
+    }
+    #timerInputs span {
+      color: #7fdbff;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .timer-btn {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid #1a9fbb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    #timerStart {
+      background: rgba(46, 204, 113, 0.3);
+      color: #2ecc71;
+      border-color: #2ecc71;
+    }
+    #timerStart:hover {
+      background: rgba(46, 204, 113, 0.5);
+      box-shadow: 0 0 8px rgba(46,204,113,0.4);
+    }
+    #timerPause {
+      background: rgba(241, 196, 15, 0.3);
+      color: #f1c40f;
+      border-color: #f1c40f;
+    }
+    #timerPause:hover {
+      background: rgba(241, 196, 15, 0.5);
+      box-shadow: 0 0 8px rgba(241,196,15,0.4);
+    }
+    #timerReset {
+      background: rgba(231, 76, 60, 0.3);
+      color: #e74c3c;
+      border-color: #e74c3c;
+    }
+    #timerReset:hover {
+      background: rgba(231, 76, 60, 0.5);
+      box-shadow: 0 0 8px rgba(231,76,60,0.4);
+    }
+    #timerStatus {
+      color: #aee;
+      font-size: 11px;
+      text-align: center;
+      min-height: 16px;
+    }
+    #feedMessage {
+      color: #f1c40f;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      min-height: 18px;
+      text-shadow: 0 0 6px rgba(241,196,15,0.5);
+    }
   </style>
 </head>
 <body>
@@ -157,6 +265,20 @@
       <h1>🐠 Aquarium Adventure 🐙</h1>
       <div id="ui">Arrow keys / WASD to swim &bull; Drag creatures from sidebar to add them! &bull; Drag creatures to trash to delete!</div>
       <canvas id="game"></canvas>
+    </div>
+    <div id="timerPanel">
+      <div id="timerTitle">📚 Study Timer</div>
+      <div id="timerDisplay">25:00</div>
+      <div id="timerInputs">
+        <input type="number" id="timerMin" min="0" max="99" value="25" title="Minutes" />
+        <span>:</span>
+        <input type="number" id="timerSec" min="0" max="59" value="00" title="Seconds" />
+      </div>
+      <button class="timer-btn" id="timerStart">▶ Start</button>
+      <button class="timer-btn" id="timerPause" style="display:none;">⏸ Pause</button>
+      <button class="timer-btn" id="timerReset">↺ Reset</button>
+      <div id="timerStatus">Set your study time</div>
+      <div id="feedMessage"></div>
     </div>
   </div>
   <div id="chatBubble"></div>

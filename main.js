@@ -1161,6 +1161,205 @@ showChat = function(text, cx, cy) {
   for (let i = 0; i < 3; i++) spawnHeart(cx + rand(-15, 15), cy - 20);
 };
 
+// ── Fish Food Particles ────────────────────
+const foodParticles = [];
+let feedingActive = false;
+
+function spawnFishFood() {
+  feedingActive = true;
+  const numPellets = 25;
+  for (let i = 0; i < numPellets; i++) {
+    foodParticles.push({
+      x: rand(20, renderCanvas.width - 20),
+      y: rand(-20, -5),
+      vy: rand(0.15, 0.4),
+      vx: rand(-0.1, 0.1),
+      size: rand(2, 4),
+      color: ['#ff8c00', '#ff6f00', '#e65100', '#f57c00', '#ff9800'][randI(0, 5)],
+      alpha: 1,
+      settled: false,
+      settleY: renderCanvas.height - rand(48, 56),
+      delay: i * 3, // stagger the drops
+    });
+  }
+}
+
+function updateFoodParticles() {
+  for (let i = foodParticles.length - 1; i >= 0; i--) {
+    const f = foodParticles[i];
+    if (f.delay > 0) { f.delay--; continue; }
+    if (!f.settled) {
+      f.y += f.vy;
+      f.x += f.vx;
+      f.vx += rand(-0.01, 0.01); // gentle drift
+      // Creatures "eat" nearby food
+      let eaten = false;
+      for (const c of creatures) {
+        if (dist({ x: f.x, y: f.y }, c) < c.size * 0.6) {
+          eaten = true;
+          // Spawn a tiny heart when creature eats
+          spawnHeart(c.x + rand(-5, 5), c.y - 10);
+          break;
+        }
+      }
+      if (eaten) {
+        foodParticles.splice(i, 1);
+        continue;
+      }
+      if (f.y >= f.settleY) {
+        f.y = f.settleY;
+        f.settled = true;
+      }
+    } else {
+      f.alpha -= 0.003;
+      if (f.alpha <= 0) {
+        foodParticles.splice(i, 1);
+      }
+    }
+  }
+  if (feedingActive && foodParticles.length === 0) {
+    feedingActive = false;
+  }
+}
+
+function drawFoodParticles() {
+  foodParticles.forEach(f => {
+    if (f.delay > 0) return;
+    ctx.save();
+    ctx.globalAlpha = f.alpha;
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+    ctx.fill();
+    // small highlight
+    ctx.fillStyle = 'rgba(255,255,200,0.5)';
+    ctx.beginPath();
+    ctx.arc(f.x - f.size * 0.3, f.y - f.size * 0.3, f.size * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── Study Timer ────────────────────────────
+const timerDisplay = document.getElementById('timerDisplay');
+const timerMinInput = document.getElementById('timerMin');
+const timerSecInput = document.getElementById('timerSec');
+const timerStartBtn = document.getElementById('timerStart');
+const timerPauseBtn = document.getElementById('timerPause');
+const timerResetBtn = document.getElementById('timerReset');
+const timerStatus = document.getElementById('timerStatus');
+const feedMessage = document.getElementById('feedMessage');
+
+let timerInterval = null;
+let timerRemaining = 25 * 60; // seconds
+let timerRunning = false;
+let timerOriginal = 25 * 60;
+
+function formatTime(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateTimerDisplay() {
+  timerDisplay.textContent = formatTime(timerRemaining);
+}
+
+function startTimer() {
+  if (timerRunning) return;
+  const mins = parseInt(timerMinInput.value) || 0;
+  const secs = parseInt(timerSecInput.value) || 0;
+  if (!timerInterval) {
+    // Fresh start — read from inputs
+    timerRemaining = mins * 60 + secs;
+    timerOriginal = timerRemaining;
+  }
+  if (timerRemaining <= 0) {
+    timerStatus.textContent = 'Set a time first!';
+    return;
+  }
+  timerRunning = true;
+  timerStartBtn.style.display = 'none';
+  timerPauseBtn.style.display = 'block';
+  timerMinInput.disabled = true;
+  timerSecInput.disabled = true;
+  timerStatus.textContent = '📖 Studying...';
+  feedMessage.textContent = '';
+
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    updateTimerDisplay();
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRunning = false;
+      timerStartBtn.style.display = 'block';
+      timerPauseBtn.style.display = 'none';
+      timerMinInput.disabled = false;
+      timerSecInput.disabled = false;
+      timerStatus.textContent = '✅ Time\'s up!';
+      feedMessage.textContent = '🐟 Feeding time! 🐟';
+      // Reset inputs to original
+      timerMinInput.value = String(Math.floor(timerOriginal / 60)).padStart(2, '0');
+      timerSecInput.value = String(timerOriginal % 60).padStart(2, '0');
+      // Feed the fish!
+      spawnFishFood();
+      // Clear feed message after a few seconds
+      setTimeout(() => { feedMessage.textContent = ''; }, 5000);
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  if (!timerRunning) return;
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerStartBtn.style.display = 'block';
+  timerStartBtn.textContent = '▶ Resume';
+  timerPauseBtn.style.display = 'none';
+  timerStatus.textContent = '⏸ Paused';
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRunning = false;
+  const mins = parseInt(timerMinInput.value) || 25;
+  const secs = parseInt(timerSecInput.value) || 0;
+  timerRemaining = mins * 60 + secs;
+  timerOriginal = timerRemaining;
+  updateTimerDisplay();
+  timerStartBtn.style.display = 'block';
+  timerStartBtn.textContent = '▶ Start';
+  timerPauseBtn.style.display = 'none';
+  timerMinInput.disabled = false;
+  timerSecInput.disabled = false;
+  timerStatus.textContent = 'Set your study time';
+  feedMessage.textContent = '';
+}
+
+timerStartBtn.addEventListener('click', startTimer);
+timerPauseBtn.addEventListener('click', pauseTimer);
+timerResetBtn.addEventListener('click', resetTimer);
+
+// Update display when inputs change
+timerMinInput.addEventListener('input', () => {
+  if (!timerRunning) {
+    const mins = parseInt(timerMinInput.value) || 0;
+    const secs = parseInt(timerSecInput.value) || 0;
+    timerRemaining = mins * 60 + secs;
+    updateTimerDisplay();
+  }
+});
+timerSecInput.addEventListener('input', () => {
+  if (!timerRunning) {
+    const mins = parseInt(timerMinInput.value) || 0;
+    const secs = parseInt(timerSecInput.value) || 0;
+    timerRemaining = mins * 60 + secs;
+    updateTimerDisplay();
+  }
+});
+
 // ── Main game loop ─────────────────────────
 function gameLoop() {
   time++;
@@ -1170,12 +1369,14 @@ function gameLoop() {
   creatures.forEach(c => c.update());
   updateBubbles();
   updateHearts();
+  updateFoodParticles();
   checkSocialise();
 
   // Draw
   drawBackground();
   drawCoral();
   drawBubbles();
+  drawFoodParticles();
   creatures.forEach(c => c.draw());
 
   // Draw player
