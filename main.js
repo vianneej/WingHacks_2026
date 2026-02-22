@@ -1116,7 +1116,7 @@ function drawReadableNametags() {
 const player = {
   x: 160,
   y: 100,
-  size: 30,
+  size: getPlayerSize('dorry'),
   color: '#f1c40f',
   tailColor: '#e67e22',
   vx: 0,
@@ -1249,6 +1249,27 @@ function getSpawnSize(type) {
   }
 }
 
+function getPlayerSize(type) {
+  const baseByType = {
+    dorry: 36,
+    clownfish: 25,
+    axilottle: 28,
+    seahorse: 23,
+    seastar: 19,
+    Whaleshark: 45,
+    seaturtle: 45,
+    downCrab: 24,
+    upCrab: 24,
+    crab: 24,
+    lobster: 24,
+  };
+  const base = baseByType[type] ?? 16;
+  const isCrustacean = type === 'downCrab' || type === 'upCrab' || type === 'crab' || type === 'lobster';
+  const scale = isCrustacean ? 2.4 : (type === 'seastar' ? 3 : 1.2);
+  const scaled = base * scale;
+  return Math.min(96, scaled);
+}
+
 // ── Drag & Drop Creature Picker ────────────
 const availableCreatures = [
   { type: 'dorry', label: 'Dory', colors: ['#3498db'], sprite: 'dorry' },
@@ -1308,6 +1329,7 @@ function initSidebar() {
       // Don't select if this was a drag
       if (picker._wasDragged) { picker._wasDragged = false; return; }
       playerType = creature.type;
+      player.size = getPlayerSize(playerType);
       playClickSound();
       // Update visual selection
       sidebar.querySelectorAll('.creature-picker').forEach(p => p.classList.remove('selected-player'));
@@ -1851,7 +1873,12 @@ function gameLoop() {
   creatures.forEach(c => c.draw());
 
   // Draw player
-  const playerImg = images[playerType];
+  let playerImg = images[playerType];
+  if (playerType === 'lobster') {
+    const lobsterMoving = Math.abs(player.vx) > 0.03;
+    const lobsterFrame = lobsterMoving && Math.floor(time / 8) % 2 === 0 ? 'lobster_left' : 'lobster_right';
+    playerImg = images[lobsterFrame];
+  }
   if (playerImg && playerImg.complete && playerImg.naturalWidth > 0) {
     ctx.save();
     
