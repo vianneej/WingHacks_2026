@@ -4,9 +4,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aquarium Adventure</title>
+  <title>Motion in the Ocean</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: 100%; }
     body {
       font-family: 'Fredoka', sans-serif;
       background: #0a1628;
@@ -14,8 +15,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      min-height: 100vh;
-      overflow: auto;
+      height: 100vh;
+      overflow: hidden;
     }
     button, input, select, textarea {
       font-family: inherit;
@@ -25,44 +26,54 @@
       gap: 12px;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 40px;
-      padding-bottom: 40px;
+      padding: 8px 12px;
+      flex: 1;
+      overflow: hidden;
     }
     #main {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+      flex: 1;
+      overflow: hidden;
     }
     #rightPanels {
       display: flex;
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
     }
     h1 {
       color: #7fdbff;
-      margin-top: 30px;
-      margin-bottom: 8px;
-      font-size: 1.4rem;
+      margin: 4px 0 4px 0;
+      font-size: 1.2rem;
       text-shadow: 0 0 10px rgba(127,219,255,.5);
     }
     #ui {
       color: #aee;
-      font-size: 0.95rem;
-      margin-bottom: 6px;
+      font-size: 0.85rem;
+      margin: 0 0 4px 0;
       text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       flex-wrap: wrap;
+      padding: 0 12px;
     }
     canvas {
       border: 3px solid #1a3a5c;
       border-radius: 12px;
       box-shadow: 0 0 30px rgba(0,100,200,.3);
       image-rendering: pixelated;
+      max-height: calc(100vh - 140px);
+      max-width: 100%;
+      width: auto;
+      height: auto;
+      display: block;
     }
     #chatBubble {
       position: fixed;
@@ -106,8 +117,11 @@
       padding: 12px;
       width: 100px;
       height: auto;
-      max-height: none;
-      overflow-y: visible;
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      overflow-x: hidden;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;

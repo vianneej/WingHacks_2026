@@ -45,6 +45,57 @@ loadImage("bluecoral", 'assets/bluecoral.png');
 loadImage("redcoral", 'assets/redcoral.PNG');
 loadImage("seaturtle", 'assets/seaturtle.PNG');
 
+// ── Audio (Web Audio, lightweight synths) ──
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone({ freq = 440, type = 'sine', duration = 0.2, gain = 0.15, attack = 0.01, decay = 0.08, bend = 0 }) {
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  if (bend !== 0) osc.frequency.linearRampToValueAtTime(freq + bend, now + duration * 0.6);
+  amp.gain.setValueAtTime(0.0001, now);
+  amp.gain.linearRampToValueAtTime(gain, now + attack);
+  amp.gain.linearRampToValueAtTime(0.0001, now + attack + decay);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + duration);
+}
+
+function playBubbleSound() {
+  playTone({ freq: 320, type: 'sine', duration: 0.25, gain: 0.16, attack: 0.01, decay: 0.16, bend: 180 });
+  setTimeout(() => playTone({ freq: 420, type: 'sine', duration: 0.18, gain: 0.12, attack: 0.01, decay: 0.12, bend: 90 }), 60);
+}
+
+function playClickSound() {
+  playTone({ freq: 1080, type: 'square', duration: 0.12, gain: 0.08, attack: 0.005, decay: 0.08, bend: -180 });
+}
+
+function playTrashSound() {
+  playTone({ freq: 520, type: 'triangle', duration: 0.22, gain: 0.14, attack: 0.01, decay: 0.18, bend: -260 });
+  setTimeout(() => playTone({ freq: 260, type: 'square', duration: 0.12, gain: 0.09, attack: 0.008, decay: 0.1, bend: -120 }), 40);
+}
+
+function playSplashSound() {
+  // Quick dual-bubble with a soft downward bend
+  playTone({ freq: 360, type: 'sine', duration: 0.18, gain: 0.14, attack: 0.01, decay: 0.14, bend: -120 });
+  setTimeout(() => playTone({ freq: 520, type: 'sine', duration: 0.14, gain: 0.12, attack: 0.01, decay: 0.12, bend: -80 }), 55);
+}
+
+function playVictorySound() {
+  // Bright arpeggio
+  playTone({ freq: 720, type: 'triangle', duration: 0.16, gain: 0.16, attack: 0.01, decay: 0.12, bend: 80 });
+  setTimeout(() => playTone({ freq: 960, type: 'triangle', duration: 0.16, gain: 0.14, attack: 0.01, decay: 0.12, bend: 40 }), 90);
+  setTimeout(() => playTone({ freq: 1280, type: 'sine', duration: 0.22, gain: 0.12, attack: 0.01, decay: 0.16, bend: 0 }), 170);
+}
+
 // ── Canvas sizing ──────────────────────────
 // function resize() {
 //   canvas.width  = Math.min(window.innerWidth - 40, 960);
@@ -750,6 +801,27 @@ const greetings = {
   ],
 };
 
+const lastGreetingByType = {};
+function pickGreeting(type) {
+  const pool = greetings[type] || greetings.fish;
+  if (!pool || pool.length === 0) return '';
+  let idx = randI(0, pool.length);
+  // Avoid immediate repeats when possible
+  if (pool.length > 1 && lastGreetingByType[type] === idx) {
+    idx = (idx + 1) % pool.length;
+  }
+  lastGreetingByType[type] = idx;
+  return pool[idx];
+}
+
+function findCreatureAt(x, y) {
+  for (let i = creatures.length - 1; i >= 0; i--) {
+    const c = creatures[i];
+    if (Math.hypot(x - c.x, y - c.y) <= c.size * 0.8) return c;
+  }
+  return null;
+}
+
 // ── Creature class ─────────────────────────
 class Creature {
   constructor(type, x, y, size, color, tailColor) {
@@ -769,6 +841,9 @@ class Creature {
     this.swimSpeed = rand(0.8, 1.25);
     this.turnTimer = randI(120, 400);
     this.socialCooldown = 0;
+    this.alpha = 1;
+    this.isDragging = false;
+    this.dragOverTrash = false;
     this.name = this.makeName();
   }
 
@@ -778,6 +853,9 @@ class Creature {
   }
 
   update() {
+    // Skip physics for dragged creatures
+    if (this.isDragging) return;
+    
     this.wiggle += 0.08 * this.swimSpeed;
     this.turnTimer--;
     if (this.socialCooldown > 0) this.socialCooldown--;
@@ -844,6 +922,9 @@ class Creature {
     if (img && img.complete && img.naturalWidth > 0) {
       // Draw sprite image
       ctx.save();
+      if (this.alpha !== undefined) {
+        ctx.globalAlpha = this.alpha;
+      }
       const lobsterBob = Math.sin(this.wiggle * 1.25 + this.swimPhase) * 0.7;
       const bobY = isBottomDweller ? (isLobsterType ? lobsterBob : 0) : Math.sin(this.wiggle * this.swimSpeed + this.swimPhase) * 1.4;
       const swimTilt = isBottomDweller
@@ -900,8 +981,8 @@ class Creature {
 
 
   greet() {
-    const pool = greetings[this.type] || greetings.fish;
-    return `${this.name}: "${pool[randI(0, pool.length)]}"`;
+    const line = pickGreeting(this.type);
+    return `${line}`;
   }
 
 }
@@ -1004,6 +1085,51 @@ function showChat(text, cx, cy) {
   chatTimeout = setTimeout(() => chatBubble.classList.remove('show'), 3000);
 }
 
+function hideChatBubble() {
+  chatBubble.classList.remove('show');
+  clearTimeout(chatTimeout);
+}
+
+function showHoverChat(text, cx, cy) {
+  clearTimeout(chatTimeout);
+  chatBubble.textContent = text;
+  chatBubble.classList.add('show');
+
+  const rect = canvas.getBoundingClientRect();
+  chatBubble.style.left = `${rect.left + cx - 100}px`;
+  chatBubble.style.top  = `${rect.top + cy - 50}px`;
+}
+
+let chatCreature = null;
+canvas.addEventListener('click', (e) => {
+  // Ignore clicks that are part of dragging operations
+  if (draggedCreature) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const scale = rect.width / renderCanvas.width;
+  const mouseX = (e.clientX - rect.left) / scale;
+  const mouseY = (e.clientY - rect.top) / scale;
+
+  const hit = findCreatureAt(mouseX, mouseY);
+
+  if (!hit) {
+    chatCreature = null;
+    hideChatBubble();
+    return;
+  }
+
+  // Toggle off if clicking the same creature while bubble is visible
+  if (chatCreature === hit && chatBubble.classList.contains('show')) {
+    chatCreature = null;
+    hideChatBubble();
+    return;
+  }
+
+  chatCreature = hit;
+  playClickSound();
+  showChat(hit.greet(), hit.x, hit.y - hit.size * 0.6);
+});
+
 // ── Player type selection ──────────────────
 let playerType = 'dorry';
 
@@ -1091,6 +1217,7 @@ function initSidebar() {
       // Don't select if this was a drag
       if (picker._wasDragged) { picker._wasDragged = false; return; }
       playerType = creature.type;
+      playClickSound();
       // Update visual selection
       sidebar.querySelectorAll('.creature-picker').forEach(p => p.classList.remove('selected-player'));
       picker.classList.add('selected-player');
@@ -1098,6 +1225,7 @@ function initSidebar() {
 
     picker.addEventListener('dragstart', (e) => {
       picker._wasDragged = true;
+      playClickSound();
       e.dataTransfer.effectAllowed = 'copy';
       e.dataTransfer.setData('creatureType', creature.type);
     });
@@ -1145,6 +1273,7 @@ canvas.addEventListener('drop', (e) => {
       y_pos = renderCanvas.height - 46;
     }
     creatures.push(new Creature(creatureType, x, y_pos, size, color));
+    playSplashSound();
   }
 });
 
@@ -1153,6 +1282,11 @@ initSidebar();
 // ── Drag Creatures to Trash ────────────────
 let draggedCreature = null;
 let draggedCreatureIndex = -1;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+let dragOriginalX = 0;
+let dragOriginalY = 0;
+let dragStartTime = 0;
 const trashBin = document.getElementById('trashBin');
 
 // Detect creature drag from canvas
@@ -1168,6 +1302,14 @@ canvas.addEventListener('mousedown', (e) => {
     if (distance < c.size + 8) {
       draggedCreature = c;
       draggedCreatureIndex = i;
+      dragOffsetX = clickX - c.x;
+      dragOffsetY = clickY - c.y;
+      dragOriginalX = c.x;
+      dragOriginalY = c.y;
+      dragStartTime = time;
+      draggedCreature.isDragging = true;
+      draggedCreature.vx = 0;
+      draggedCreature.vy = 0;
       canvas.style.cursor = 'grabbing';
       e.preventDefault();
       break;
@@ -1178,6 +1320,20 @@ canvas.addEventListener('mousedown', (e) => {
 document.addEventListener('mousemove', (e) => {
   if (!draggedCreature) return;
   
+  const rect = canvas.getBoundingClientRect();
+  const scale = rect.width / renderCanvas.width;
+  
+  // Update creature position to follow mouse smoothly
+  const mouseX = (e.clientX - rect.left) / scale;
+  const mouseY = (e.clientY - rect.top) / scale;
+  
+  draggedCreature.x = mouseX - dragOffsetX;
+  draggedCreature.y = mouseY - dragOffsetY;
+  
+  // Clamp to canvas bounds
+  draggedCreature.x = Math.max(10, Math.min(renderCanvas.width - 10, draggedCreature.x));
+  draggedCreature.y = Math.max(10, Math.min(renderCanvas.height - 10, draggedCreature.y));
+  
   // Check if over trash bin
   const trashRect = trashBin.getBoundingClientRect();
   const isOverTrash = e.clientX >= trashRect.left && 
@@ -1187,8 +1343,12 @@ document.addEventListener('mousemove', (e) => {
   
   if (isOverTrash) {
     trashBin.classList.add('drag-over');
+    draggedCreature.alpha = 0.5; // Fade effect when over trash
+    draggedCreature.dragOverTrash = true;
   } else {
     trashBin.classList.remove('drag-over');
+    draggedCreature.alpha = 1;
+    draggedCreature.dragOverTrash = false;
   }
 });
 
@@ -1207,7 +1367,15 @@ document.addEventListener('mouseup', (e) => {
     for (let j = 0; j < 8; j++) {
       spawnBubble(draggedCreature.x + rand(-8, 8), draggedCreature.y + rand(-8, 8));
     }
+    playTrashSound();
     creatures.splice(draggedCreatureIndex, 1);
+  } else {
+    // Restore original position if not in trash with smooth animation
+    draggedCreature.isDragging = false;
+    draggedCreature.dragOverTrash = false;
+    draggedCreature.alpha = 1;
+    draggedCreature.x = dragOriginalX;
+    draggedCreature.y = dragOriginalY;
   }
   
   // Clean up
@@ -1427,6 +1595,7 @@ function startTimer() {
   timerSecInput.disabled = true;
   timerStatus.textContent = '📖 Studying...';
   feedMessage.textContent = '';
+  playSplashSound();
 
   timerInterval = setInterval(() => {
     timerRemaining--;
@@ -1440,6 +1609,7 @@ function startTimer() {
       timerMinInput.disabled = false;
       timerSecInput.disabled = false;
       timerStatus.textContent = '✅ Time\'s up!';
+      playVictorySound();
       feedMessage.textContent = '🐟 Feeding time! 🐟';
       // Reset inputs to original
       timerMinInput.value = String(Math.floor(timerOriginal / 60)).padStart(2, '0');
@@ -1460,6 +1630,7 @@ function pauseTimer() {
   timerStartBtn.textContent = '▶ Resume';
   timerPauseBtn.style.display = 'none';
   timerStatus.textContent = '⏸ Paused';
+  playSplashSound();
 }
 
 function resetTimer() {
@@ -1478,6 +1649,7 @@ function resetTimer() {
   timerSecInput.disabled = false;
   timerStatus.textContent = 'Set your study time';
   feedMessage.textContent = '';
+  playSplashSound();
 }
 
 timerStartBtn.addEventListener('click', startTimer);
@@ -1502,6 +1674,10 @@ timerSecInput.addEventListener('input', () => {
   }
 });
 
+// Play bubble sound when nudging timer inputs (e.g., arrow steppers)
+timerMinInput.addEventListener('change', () => playBubbleSound());
+timerSecInput.addEventListener('change', () => playBubbleSound());
+
 // ── To-Do List ────────────────────────────
 function createTodoItem(text) {
   const item = document.createElement('li');
@@ -1524,6 +1700,7 @@ function createTodoItem(text) {
   checkbox.addEventListener('change', () => {
     item.classList.toggle('done', checkbox.checked);
     if (checkbox.checked) {
+      playVictorySound();
       feedMessage.textContent = '🐟 Task complete! Feeding time! 🐟';
       spawnFishFood();
       setTimeout(() => {
@@ -1535,6 +1712,7 @@ function createTodoItem(text) {
   });
 
   removeBtn.addEventListener('click', () => {
+    playBubbleSound();
     item.remove();
   });
 
@@ -1548,6 +1726,7 @@ function addTodoFromInput() {
   const text = todoInput.value.trim();
   if (!text) return;
   createTodoItem(text);
+  playSplashSound();
   todoInput.value = '';
   todoInput.focus();
 }
@@ -1571,7 +1750,6 @@ function gameLoop() {
   updateBubbles();
   updateHearts();
   updateFoodParticles();
-  checkSocialise();
 
   // Draw
   drawBackground();
@@ -1584,8 +1762,16 @@ function gameLoop() {
   const playerImg = images[playerType];
   if (playerImg && playerImg.complete && playerImg.naturalWidth > 0) {
     ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.scale(player.dir, 1);
+    
+    // Swimming animations
+    const swimTilt = Math.atan2(player.vy, player.vx * player.dir + 0.05) * 0.24 + Math.sin(player.wiggle * 0.55) * 0.08;
+    const bobY = Math.sin(player.wiggle * player.speed * 0.08) * 1.6;
+    const squirm = Math.sin(player.wiggle * 1.7) * 0.04;
+    
+    ctx.translate(player.x, player.y + bobY);
+    ctx.rotate(swimTilt);
+    ctx.scale(player.dir * (1 + squirm), 1 - squirm * 0.6);
+    
     const aspect = playerImg.width / playerImg.height;
     const w = player.size;
     const h = w / aspect;
@@ -1639,6 +1825,7 @@ function popStartBubbles(originX, originY) {
 }
 
 diveInBtn.addEventListener('click', (event) => {
+  playBubbleSound();
   const rect = event.currentTarget.getBoundingClientRect();
   const originX = rect.left + rect.width / 2;
   const originY = rect.top + rect.height / 2;
