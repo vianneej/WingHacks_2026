@@ -7,9 +7,19 @@ const displayCtx = canvas.getContext('2d');
 const chatBubble = document.getElementById('chatBubble');
 const startScreen = document.getElementById('startScreen');
 const diveInBtn = document.getElementById('diveInBtn');
+const fieldNotesBtn = document.getElementById('fieldNotesBtn');
+const fieldNotesOverlay = document.getElementById('fieldNotesOverlay');
+const fieldNotesText = document.getElementById('fieldNotesText');
+const fieldNotesSave = document.getElementById('fieldNotesSave');
+const fieldNotesDone = document.getElementById('fieldNotesDone');
+const fieldNotesClose = document.getElementById('fieldNotesClose');
+const pauseBtn = document.getElementById('pauseBtn');
+const pauseOverlay = document.getElementById('pauseOverlay');
+const pauseResume = document.getElementById('pauseResume');
 
 let gameStarted = false;
 let gameLoopStarted = false;
+let gamePaused = false;
 
 canvas.width = 1200;
 canvas.height = 750;
@@ -94,6 +104,87 @@ function playVictorySound() {
   playTone({ freq: 720, type: 'triangle', duration: 0.16, gain: 0.16, attack: 0.01, decay: 0.12, bend: 80 });
   setTimeout(() => playTone({ freq: 960, type: 'triangle', duration: 0.16, gain: 0.14, attack: 0.01, decay: 0.12, bend: 40 }), 90);
   setTimeout(() => playTone({ freq: 1280, type: 'sine', duration: 0.22, gain: 0.12, attack: 0.01, decay: 0.16, bend: 0 }), 170);
+}
+
+// ── Field Notes helpers ───────────────────
+const FIELD_NOTES_KEY = 'fieldNotesContent';
+function loadFieldNotes() {
+  fieldNotesText.value = localStorage.getItem(FIELD_NOTES_KEY) || '';
+}
+function saveFieldNotes() {
+  localStorage.setItem(FIELD_NOTES_KEY, fieldNotesText.value || '');
+}
+function openFieldNotes() {
+  loadFieldNotes();
+  fieldNotesOverlay.classList.add('show');
+  fieldNotesOverlay.setAttribute('aria-hidden', 'false');
+  playClickSound();
+  setTimeout(() => fieldNotesText.focus(), 0);
+}
+function closeFieldNotes() {
+  saveFieldNotes();
+  fieldNotesOverlay.classList.remove('show');
+  fieldNotesOverlay.setAttribute('aria-hidden', 'true');
+}
+function attachFieldNotesEvents() {
+  if (!fieldNotesBtn) return;
+  fieldNotesBtn.setAttribute('role', 'button');
+  fieldNotesBtn.tabIndex = 0;
+  const activate = () => openFieldNotes();
+  fieldNotesBtn.addEventListener('click', activate);
+  fieldNotesBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+  });
+
+  const saveAndStay = () => { saveFieldNotes(); playClickSound(); };
+  const saveAndClose = () => { saveFieldNotes(); playClickSound(); closeFieldNotes(); };
+
+  fieldNotesSave?.addEventListener('click', saveAndStay);
+  fieldNotesDone?.addEventListener('click', saveAndClose);
+  fieldNotesClose?.addEventListener('click', () => { playClickSound(); closeFieldNotes(); });
+
+  fieldNotesOverlay?.addEventListener('click', (e) => {
+    if (e.target === fieldNotesOverlay) { closeFieldNotes(); }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fieldNotesOverlay.classList.contains('show')) {
+      closeFieldNotes();
+    }
+  });
+}
+
+// ── Pause menu ───────────────────────────
+function openPauseMenu() {
+  if (!pauseOverlay || !pauseBtn) return;
+  if (!gameStarted) return;
+  gamePaused = true;
+  pauseOverlay.classList.add('show');
+  pauseOverlay.setAttribute('aria-hidden', 'false');
+  if (timerRunning) pauseTimer();
+  playClickSound();
+}
+
+function closePauseMenu() {
+  if (!pauseOverlay) return;
+  gamePaused = false;
+  pauseOverlay.classList.remove('show');
+  pauseOverlay.setAttribute('aria-hidden', 'true');
+  playClickSound();
+}
+
+function attachPauseMenuEvents() {
+  if (!pauseBtn || !pauseOverlay || !pauseResume) return;
+  pauseBtn.addEventListener('click', openPauseMenu);
+  pauseResume.addEventListener('click', closePauseMenu);
+  pauseOverlay.addEventListener('click', (e) => {
+    if (e.target === pauseOverlay) closePauseMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pauseOverlay.classList.contains('show')) {
+      closePauseMenu();
+    }
+  });
 }
 
 // ── Canvas sizing ──────────────────────────
@@ -1741,7 +1832,8 @@ todoInput.addEventListener('keydown', (event) => {
 
 // ── Main game loop ─────────────────────────
 function gameLoop() {
-  if (!gameStarted) return;
+  if (!gameStarted) { requestAnimationFrame(gameLoop); return; }
+  if (gamePaused) { requestAnimationFrame(gameLoop); return; }
   time++;
   handleInput();
 
@@ -1840,3 +1932,6 @@ diveInBtn.addEventListener('click', (event) => {
     }
   }, 180);
 });
+
+attachFieldNotesEvents();
+attachPauseMenuEvents();
