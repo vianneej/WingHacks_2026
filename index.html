@@ -34,6 +34,12 @@
       align-items: center;
       justify-content: flex-start;
     }
+    #rightPanels {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
     h1 {
       color: #7fdbff;
       margin-top: 30px;
@@ -63,8 +69,8 @@
       background: linear-gradient(180deg, rgba(224, 246, 255, 0.96) 0%, rgba(191, 234, 255, 0.95) 100%);
       color: #1f4d6b;
       padding: 10px 16px;
-      border-radius: 18px;
-      border: 2px solid rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      border: none;
       font-size: 0.95rem;
       line-height: 1.35;
       font-weight: 600;
@@ -81,12 +87,22 @@
       overflow: visible;
       z-index: 10;
     }
+    #chatBubble::before,
+    #startCard::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: inherit;
+      background: radial-gradient(circle, rgba(255,255,255,0.95) 60%, rgba(255,255,255,0) 63%) 0 0 / 20px 20px round;
+      z-index: -1;
+      pointer-events: none;
+    }
     #chatBubble.show { opacity: 1; }
 
     #sidebar {
-      background: rgba(26, 58, 92, 0.8);
-      border: 2px solid #1a7a8a;
-      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(224, 246, 255, 0.94) 0%, rgba(191, 234, 255, 0.9) 100%);
+      border: none;
+      border-radius: 16px;
       padding: 12px;
       width: 100px;
       height: auto;
@@ -95,29 +111,37 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      box-shadow:
+        0 8px 20px rgba(58, 118, 158, 0.28),
+        inset 0 1px 0 rgba(255,255,255,0.85),
+        inset 0 -2px 6px rgba(110, 185, 230, 0.28);
     }
 
     .creature-picker {
-      background: rgba(100, 200, 255, 0.2);
-      border: 2px solid #1a9fbb;
-      border-radius: 6px;
+      background: linear-gradient(180deg, rgba(217, 243, 255, 0.95), rgba(185, 231, 253, 0.9));
+      border: none;
+      border-radius: 14px;
       padding: 6px;
       cursor: grab;
       text-align: center;
       transition: all 0.2s;
       user-select: none;
+      box-shadow:
+        0 3px 10px rgba(68, 133, 176, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.9);
     }
     .creature-picker:hover {
-      background: rgba(100, 200, 255, 0.4);
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
       transform: scale(1.05);
     }
     .creature-picker:active {
       cursor: grabbing;
     }
     .creature-picker.selected-player {
-      background: rgba(241, 196, 15, 0.35);
-      border-color: #f1c40f;
-      box-shadow: 0 0 8px rgba(241,196,15,0.5);
+      background: linear-gradient(180deg, rgba(255, 242, 191, 0.95), rgba(255, 223, 140, 0.9));
+      box-shadow:
+        0 0 10px rgba(241,196,15,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.8);
     }
     .creature-picker.selected-player::after {
       content: '⭐ YOU';
@@ -149,7 +173,7 @@
       transform-origin: center;
     }
     .creature-picker-label {
-      color: #7fdbff;
+      color: #2b6686;
       font-size: 12px;
       font-weight: bold;
       white-space: nowrap;
@@ -157,7 +181,7 @@
       text-overflow: ellipsis;
     }
     #sidebarTitle {
-      color: #7fdbff;
+      color: #2b6686;
       font-size: 13px;
       font-weight: bold;
       text-align: center;
@@ -166,41 +190,60 @@
       letter-spacing: 1px;
     }
     #trashBin {
-      background: rgba(220, 53, 69, 0.7);
-      border: 2px dashed #dc3545;
-      border-radius: 6px;
+      background: linear-gradient(180deg, rgba(217, 243, 255, 0.95), rgba(185, 231, 253, 0.9));
+      border: 2px dashed rgba(117, 195, 232, 0.95);
+      border-radius: 14px;
       padding: 8px;
       text-align: center;
       cursor: grab;
       font-size: 32px;
       transition: all 0.2s;
       margin-top: auto;
+      box-shadow:
+        0 3px 10px rgba(68, 133, 176, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.9);
     }
     #trashBin:hover {
-      background: rgba(220, 53, 69, 0.9);
-      box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
+      box-shadow: 0 0 10px rgba(117, 195, 232, 0.6);
     }
     #trashBin.drag-over {
-      background: rgba(220, 53, 69, 1);
-      border-color: #ff6b6b;
-      box-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
+      background: linear-gradient(180deg, rgba(202, 238, 255, 1), rgba(166, 222, 250, 0.98));
+      border-color: #58bfe8;
+      box-shadow: 0 0 14px rgba(88, 191, 232, 0.75);
       transform: scale(1.05);
     }
 
     /* ── Study Timer Panel ─────────────── */
     #timerPanel {
-      background: rgba(26, 58, 92, 0.85);
-      border: 2px solid #1a7a8a;
-      border-radius: 12px;
+      position: relative;
+      background: linear-gradient(180deg, rgba(224, 246, 255, 0.96) 0%, rgba(191, 234, 255, 0.93) 100%);
+      border: none;
+      border-radius: 18px;
       padding: 16px 14px;
       width: 160px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
+      box-shadow:
+        0 8px 20px rgba(58, 118, 158, 0.28),
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -2px 6px rgba(110, 185, 230, 0.28);
+      isolation: isolate;
+    }
+    #timerPanel::before,
+    #todoPanel::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: inherit;
+      background: radial-gradient(circle, rgba(255,255,255,0.95) 60%, rgba(255,255,255,0) 63%) 0 0 / 20px 20px round;
+      z-index: -1;
+      pointer-events: none;
     }
     #timerTitle {
-      color: #7fdbff;
+      color: #2b6686;
       font-size: 14px;
       font-weight: bold;
       text-transform: uppercase;
@@ -208,11 +251,11 @@
       text-align: center;
     }
     #timerDisplay {
-      color: #fff;
+      color: #1f678f;
       font-size: 38px;
       font-weight: bold;
       font-family: inherit;
-      text-shadow: 0 0 12px rgba(127,219,255,0.6);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.9);
       letter-spacing: 1px;
       line-height: 1;
     }
@@ -224,80 +267,277 @@
     #timerInputs input {
       width: 46px;
       padding: 4px;
-      border: 1px solid #1a9fbb;
+      border: 1px solid rgba(117, 195, 232, 0.95);
       border-radius: 6px;
-      background: rgba(0,20,40,0.7);
-      color: #7fdbff;
+      background: rgba(242, 251, 255, 0.95);
+      color: #2b6686;
       font-size: 16px;
       text-align: center;
       font-family: inherit;
     }
     #timerInputs input:focus {
       outline: none;
-      border-color: #7fdbff;
-      box-shadow: 0 0 6px rgba(127,219,255,0.4);
+      border-color: #58bfe8;
+      box-shadow: 0 0 6px rgba(88,191,232,0.35);
     }
     #timerInputs span {
-      color: #7fdbff;
+      color: #2b6686;
       font-size: 16px;
       font-weight: bold;
     }
     .timer-btn {
       width: 100%;
       padding: 8px;
-      border: 2px solid #1a9fbb;
-      border-radius: 8px;
+      border: 2px solid rgba(117, 195, 232, 0.95);
+      border-radius: 12px;
       cursor: pointer;
       font-size: 14px;
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 0.6px;
       transition: all 0.2s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
     #timerStart {
-      background: rgba(46, 204, 113, 0.3);
-      color: #2ecc71;
-      border-color: #2ecc71;
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
+      color: #1f678f;
     }
     #timerStart:hover {
-      background: rgba(46, 204, 113, 0.5);
-      box-shadow: 0 0 8px rgba(46,204,113,0.4);
+      box-shadow: 0 0 10px rgba(117, 195, 232, 0.55);
+      transform: translateY(-1px);
     }
     #timerPause {
-      background: rgba(241, 196, 15, 0.3);
-      color: #f1c40f;
-      border-color: #f1c40f;
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
+      color: #1f678f;
     }
     #timerPause:hover {
-      background: rgba(241, 196, 15, 0.5);
-      box-shadow: 0 0 8px rgba(241,196,15,0.4);
+      box-shadow: 0 0 10px rgba(117, 195, 232, 0.55);
+      transform: translateY(-1px);
     }
     #timerReset {
-      background: rgba(231, 76, 60, 0.3);
-      color: #e74c3c;
-      border-color: #e74c3c;
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
+      color: #1f678f;
     }
     #timerReset:hover {
-      background: rgba(231, 76, 60, 0.5);
-      box-shadow: 0 0 8px rgba(231,76,60,0.4);
+      box-shadow: 0 0 10px rgba(117, 195, 232, 0.55);
+      transform: translateY(-1px);
     }
     #timerStatus {
-      color: #aee;
+      color: #2b6686;
       font-size: 12px;
       text-align: center;
       min-height: 16px;
     }
     #feedMessage {
-      color: #f1c40f;
+      color: #1f678f;
       font-size: 13px;
       font-weight: bold;
       text-align: center;
       min-height: 18px;
-      text-shadow: 0 0 6px rgba(241,196,15,0.5);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+    }
+
+    #todoPanel {
+      position: relative;
+      width: 160px;
+      padding: 14px 12px 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(224, 246, 255, 0.96) 0%, rgba(191, 234, 255, 0.93) 100%);
+      box-shadow:
+        0 10px 22px rgba(58, 118, 158, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -2px 6px rgba(110, 185, 230, 0.28);
+      isolation: isolate;
+    }
+    #todoTitle {
+      color: #2b6686;
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    #todoInputRow {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    #todoInput {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid rgba(117, 195, 232, 0.95);
+      border-radius: 10px;
+      background: rgba(242, 251, 255, 0.95);
+      color: #2b6686;
+      padding: 7px 9px;
+      font-size: 13px;
+    }
+    #todoInput:focus {
+      outline: none;
+      border-color: #58bfe8;
+      box-shadow: 0 0 6px rgba(88,191,232,0.35);
+    }
+    #todoAddBtn {
+      border: 2px solid rgba(117, 195, 232, 0.95);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(229, 248, 255, 0.98), rgba(197, 236, 254, 0.94));
+      color: #1f678f;
+      font-weight: 700;
+      padding: 7px 10px;
+      cursor: pointer;
+    }
+    #todoAddBtn:hover {
+      box-shadow: 0 0 10px rgba(117, 195, 232, 0.55);
+      transform: translateY(-1px);
+    }
+    #todoList {
+      list-style: none;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 10px;
+      background: rgba(242, 251, 255, 0.9);
+      border: 1px solid rgba(154, 218, 246, 0.85);
+      padding: 6px 7px;
+      color: #2b6686;
+      font-size: 13px;
+    }
+    .todo-check {
+      cursor: pointer;
+      accent-color: #58bfe8;
+    }
+    .todo-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      opacity: 0.65;
+    }
+    .todo-remove {
+      border: none;
+      background: transparent;
+      color: #3f7fa3;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    #todoHint {
+      margin-top: 7px;
+      color: #2b6686;
+      font-size: 11px;
+      text-align: center;
+      opacity: 0.8;
+    }
+
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 30%, rgba(73, 155, 205, 0.35), rgba(10, 22, 40, 0.92) 60%);
+      backdrop-filter: blur(2px);
+    }
+    #startScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #startCard {
+      position: relative;
+      background: linear-gradient(180deg, rgba(181, 232, 255, 0.95), rgba(142, 210, 247, 0.94));
+      border: none;
+      border-radius: 22px;
+      box-shadow: 0 10px 28px rgba(0, 40, 90, 0.35);
+      padding: 24px 26px;
+      text-align: center;
+      color: #0f3f63;
+      min-width: 280px;
+      isolation: isolate;
+    }
+    #startTitle {
+      font-size: 2.05rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      text-transform: lowercase;
+      letter-spacing: 0.4px;
+      background: linear-gradient(180deg, #2a7aa6 0%, #1f678f 48%, #174f6f 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow:
+        0 2px 0 rgba(8, 70, 98, 0.45),
+        0 0 8px rgba(149, 219, 245, 0.25),
+        0 0 16px rgba(93, 184, 220, 0.2);
+      animation: bubblyTitleFloat 2.2s ease-in-out infinite;
+    }
+    #diveInBtn {
+      border: 2px solid #1a9fbb;
+      background: linear-gradient(180deg, #8ce9ff, #56cde9);
+      color: #064f68;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 88, 126, 0.3);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    #diveInBtn:hover {
+      transform: translateY(-1px) scale(1.02);
+      filter: brightness(1.05);
+    }
+
+    .start-pop-bubble {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(210, 245, 255, 0.95);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.85), rgba(155, 226, 255, 0.45));
+      box-shadow: 0 0 10px rgba(158, 231, 255, 0.6);
+      pointer-events: none;
+      z-index: 120;
+      animation: bubblePop 420ms ease-out forwards;
+    }
+
+    @keyframes bubblyTitleFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      25% { transform: translateY(-2px) scale(1.01, 1.02); }
+      55% { transform: translateY(1px) scale(0.995, 1.01); }
+      80% { transform: translateY(-1px) scale(1.01); }
+    }
+
+    @keyframes bubblePop {
+      0% { transform: scale(0.35); opacity: 0.9; }
+      65% { opacity: 0.95; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(1.35); opacity: 0; }
     }
   </style>
 </head>
 <body>
+  <div id="startScreen">
+    <div id="startCard">
+      <div id="startTitle">motion in the ocean</div>
+      <button id="diveInBtn">Dive in</button>
+    </div>
+  </div>
   <h1>🐠 Aquarium Adventure 🐙</h1>
   <div id="ui">Arrow keys / WASD to swim &bull; Click a creature to play as it! &bull; Drag to add &bull; Drag to trash to delete!</div>
   <div id="container">
@@ -309,19 +549,30 @@
     <div id="main">
       <canvas id="game"></canvas>
     </div>
-    <div id="timerPanel">
-      <div id="timerTitle">📚 Study Timer</div>
-      <div id="timerDisplay">25:00</div>
-      <div id="timerInputs">
-        <input type="number" id="timerMin" min="0" max="99" value="25" title="Minutes" />
-        <span>:</span>
-        <input type="number" id="timerSec" min="0" max="59" value="00" title="Seconds" />
+    <div id="rightPanels">
+      <div id="timerPanel">
+        <div id="timerTitle">📚 Study Timer</div>
+        <div id="timerDisplay">25:00</div>
+        <div id="timerInputs">
+          <input type="number" id="timerMin" min="0" max="99" value="25" title="Minutes" />
+          <span>:</span>
+          <input type="number" id="timerSec" min="0" max="59" value="00" title="Seconds" />
+        </div>
+        <button class="timer-btn" id="timerStart">▶ Start</button>
+        <button class="timer-btn" id="timerPause" style="display:none;">⏸ Pause</button>
+        <button class="timer-btn" id="timerReset">↺ Reset</button>
+        <div id="timerStatus">Set your study time</div>
+        <div id="feedMessage"></div>
       </div>
-      <button class="timer-btn" id="timerStart">▶ Start</button>
-      <button class="timer-btn" id="timerPause" style="display:none;">⏸ Pause</button>
-      <button class="timer-btn" id="timerReset">↺ Reset</button>
-      <div id="timerStatus">Set your study time</div>
-      <div id="feedMessage"></div>
+      <div id="todoPanel">
+        <div id="todoTitle">🫧 To-Do List</div>
+        <div id="todoInputRow">
+          <input id="todoInput" type="text" placeholder="Add task..." maxlength="80" />
+          <button id="todoAddBtn">Add</button>
+        </div>
+        <ul id="todoList"></ul>
+        <div id="todoHint">Tap checkbox to complete</div>
+      </div>
     </div>
   </div>
   <div id="chatBubble"></div>
