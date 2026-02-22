@@ -111,8 +111,8 @@ function drawCoral() {
 }
 
 // ── Background – sand, water, plants ───────
-const plants = Array.from({ length: 10 }, () => ({
-  x: rand(30, 390),
+const plants = Array.from({ length: 10 }, (_, i) => ({
+  x: 30 + i * ((390 - 30) / 10) + rand(-8, 8),
   h: rand(50, 80),
   w: rand(2, 5),
   hue: randI(100, 160),
@@ -1010,6 +1010,7 @@ let playerType = 'dorry';
 function getSpawnSize(type) {
   switch (type) {
     case 'dorry':
+      return rand(32, 40);
     case 'clownfish':
       return rand(22, 28);
     case 'axilottle':
