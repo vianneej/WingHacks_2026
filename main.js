@@ -1750,10 +1750,12 @@ function resetTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
   timerRunning = false;
-  const mins = parseInt(timerMinInput.value) || 25;
-  const secs = parseInt(timerSecInput.value) || 0;
+  const mins = 25;
+  const secs = 0;
   timerRemaining = mins * 60 + secs;
   timerOriginal = timerRemaining;
+  timerMinInput.value = String(mins).padStart(2, '0');
+  timerSecInput.value = String(secs).padStart(2, '0');
   updateTimerDisplay();
   timerStartBtn.style.display = 'block';
   timerStartBtn.textContent = '▶ Start';
